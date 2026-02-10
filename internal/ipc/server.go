@@ -40,13 +40,15 @@ func NewServer(sysState *state.SystemState) (*Server, error) {
 		return nil, fmt.Errorf("failed to listen on %s: %w", state.SocketPath, err)
 	}
 
-	// Set permissions to allow vex group members to connect
+	// Set permissions so vex group members can connect.
+	// Both the directory AND the socket must be accessible.
 	os.Chmod(state.SocketPath, 0660)
-	
-	// Try to set group ownership to 'vex' group if it exists
+
 	if err := setSocketGroup(state.SocketPath, "vex"); err != nil {
-		log.Printf("Warning: Could not set socket group to 'vex': %v", err)
-		log.Printf("Non-root users will need to be in the root group or run as root")
+		log.Printf("IPC: WARNING - Could not set socket group to 'vex': %v", err)
+		log.Printf("IPC: Non-root users will need to run with sudo")
+	} else {
+		log.Printf("IPC: Socket group set to 'vex' — non-root group members can connect")
 	}
 
 	return &Server{

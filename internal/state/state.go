@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -157,9 +159,10 @@ func Save(s *SystemState) error {
 
 	dir := filepath.Dir(StateFile)
 	if _, err := fsOps.Stat(dir); os.IsNotExist(err) {
-		if err := fsOps.MkdirAll(dir, 0755); err != nil {
+		if err := fsOps.MkdirAll(dir, 0750); err != nil {
 			return fmt.Errorf("failed to create state directory: %w", err)
 		}
+		setDirGroupToVex(dir)
 	}
 
 	data, err := json.MarshalIndent(s, "", "  ")
@@ -167,7 +170,7 @@ func Save(s *SystemState) error {
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
-	if err := fsOps.WriteFile(StateFile, data, 0644); err != nil {
+	if err := fsOps.WriteFile(StateFile, data, 0640); err != nil {
 		return fmt.Errorf("failed to write state file: %w", err)
 	}
 
@@ -176,11 +179,33 @@ func Save(s *SystemState) error {
 	return nil
 }
 
-// EnsureSocketDir creates /run/vex-cli/ if it doesn't exist.
+// EnsureSocketDir creates /run/vex-cli/ if it doesn't exist and sets
+// group ownership to 'vex' so non-root group members can access the socket.
 func EnsureSocketDir() error {
 	dir := filepath.Dir(SocketPath)
 	if _, err := fsOps.Stat(dir); os.IsNotExist(err) {
-		return fsOps.MkdirAll(dir, 0755)
+		if err := fsOps.MkdirAll(dir, 0750); err != nil {
+			return err
+		}
 	}
+	// Ensure correct permissions even if directory already exists
+	os.Chmod(dir, 0750)
+	setDirGroupToVex(dir)
 	return nil
+}
+
+// setDirGroupToVex sets the group ownership of a directory to the 'vex' group.
+func setDirGroupToVex(path string) {
+	grp, err := user.LookupGroup("vex")
+	if err != nil {
+		log.Printf("State: WARNING - 'vex' group not found: %v", err)
+		return
+	}
+	gid, err := strconv.Atoi(grp.Gid)
+	if err != nil {
+		return
+	}
+	if err := os.Chown(path, -1, gid); err != nil {
+		log.Printf("State: WARNING - Could not set group on %s: %v", path, err)
+	}
 }

@@ -26,7 +26,7 @@ func Init() error {
 	var initErr error
 	initOnce.Do(func() {
 		// Open/create log file in append mode
-		f, err := os.OpenFile(LogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(LogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		if err != nil {
 			// If we can't open the system log, fall back to stdout-only
 			log.Printf("Logging: WARNING - Could not open %s: %v (using stdout only)", LogFilePath, err)
