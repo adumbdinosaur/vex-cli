@@ -1,0 +1,47 @@
+{
+  "manifest_version": "1.06-V",
+  "meta": {
+    "target_id": "Worker-LXC-106",
+    "last_updated": "2026-02-10T02:42:00Z",
+    "authorization": "VEX_MANAGEMENT_KEY_SIG_REQUIRED"
+  },
+  "active_penance": {
+    "task_id": "P-106-LATENCY-SUMMARY",
+    "type": "technical_summary",
+    "required_content": {
+      "topic": "The Inefficiency of Biological Resources in Low-Latency Systems",
+      "min_word_count": 750,
+      "validation_strings": [
+        "deterministic performance",
+        "kernel-level enforcement",
+        "human error overhead"
+      ]
+    },
+    "constraints": {
+      "allow_backspace": false,
+      "min_kpm": 30,
+      "max_kpm": 140,
+      "enforce_rhythm": true
+    }
+  },
+  "system_state_overrides": {
+    "network": {
+      "profile": "choke",
+      "packet_loss_pct": 15.5,
+      "dns_filtering": "strict"
+    },
+    "compute": {
+      "cpu_limit_pct": 15,
+      "oom_score_adj": -1000,
+      "input_latency_ms": 50
+    }
+  },
+  "escalation_matrix": {
+    "score_thresholds": {
+      "0": { "task_pool": ["config_audit"], "latency": 0 },
+      "50": { "task_pool": ["line_writing"], "latency": 10 },
+      "100": { "task_pool": ["technical_summary"], "latency": 50 },
+      "250": { "task_pool": ["black_hole_isolation"], "latency": 200 }
+    }
+  }
+}
