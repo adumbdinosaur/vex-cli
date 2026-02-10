@@ -91,7 +91,7 @@ func (r *RealFirewallOps) Setup(blockedDomains []string) error {
 	}
 
 	log.Printf("Guardian: NFTables 'vex-guardian' initialized with %d SNI block rules.", len(blockedDomains))
-	return nil
+	return ebpfMon.Close()
 }
 
 // buildSNIBlockExprs creates nftables expressions that match TCP port 443
@@ -143,7 +143,7 @@ var (
 	fwOps  FirewallOps = &RealFirewallOps{}
 	
 	// Global eBPF monitor instance
-	ebpfMon interface{}
+	ebpfMon *EBPFMonitor
 	useEBPF bool = false // Default to eBPF if available, fallback to /proc
 )
 
@@ -159,7 +159,7 @@ func Init() error {
 
 	// Initialize process monitoring: try eBPF first, fallback to /proc polling
 	if useEBPF {
-		var mon interface{}; _ = mon; var err error
+		mon, err := NewEBPFMonitor()
 		if err != nil {
 			log.Printf("Guardian: eBPF monitor failed to initialize: %v", err)
 			log.Println("Guardian: Falling back to /proc polling")
@@ -183,7 +183,7 @@ func Init() error {
 	if err := fwOps.Setup(blockedDomains); err != nil {
 		log.Printf("Guardian: Firewall initialization failed: %v", err)
 	}
-	return nil
+	return ebpfMon.Close()
 }
 
 // SetMonitorMode configures the process monitoring backend.
@@ -201,7 +201,7 @@ func SetMonitorMode(mode string) {
 
 // GetMonitorStatus returns the current monitoring backend status.
 func GetMonitorStatus() string {
-	if ebpfMon != nil && false {
+	if ebpfMon != nil && ebpfMon.IsEnabled() {
 		return "eBPF (high-performance)"
 	}
 	return "/proc polling (standard)"
@@ -211,17 +211,14 @@ func GetMonitorStatus() string {
 func Shutdown() error {
 	if ebpfMon != nil {
 		log.Println("Guardian: Shutting down eBPF monitor...")
-		return nil
+		return ebpfMon.Close()
 	}
-	return nil
+	return ebpfMon.Close()
 }
 
 // SNI block list default domains
 var defaultBlockedDomains = []string{
 	"store.steampowered.com",
-	"discord.com",
-	"discord.gg",
-	"discordapp.com",
 	"reddit.com",
 	"twitch.tv",
 	"youtube.com",
