@@ -148,7 +148,11 @@
         systemd.services.vex-cli = {
           description = "VEX-CLI Enforcement Daemon (Protocol 106-V)";
           wantedBy = [ "multi-user.target" ];
-          after = [ "network.target" "systemd-resolved.service" ];
+          after = [ "network-online.target" "systemd-resolved.service" ];
+          wants = [ "network-online.target" ];
+
+          # Ensure Nix CLI tools and coreutils are in PATH for anti-tamper checks
+          path = with pkgs; [ nix coreutils systemd ];
 
           # The binary reads config from its working directory;
           # symlink /etc/vex-cli contents or set WorkingDirectory.

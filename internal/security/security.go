@@ -3,11 +3,13 @@ package security
 import (
 	"crypto/ed25519"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -48,9 +50,25 @@ func Init() error {
 			return
 		}
 
-		// Key file contains hex-encoded Ed25519 public key
-		keyBytes, err := hex.DecodeString(string(data))
-		if err != nil {
+		// Key file may contain:
+		// 1. Hex-encoded 32-byte Ed25519 public key
+		// 2. OpenSSH format: "ssh-ed25519 <base64-data> <comment>"
+		// 3. Raw 32 bytes
+		keyStr := strings.TrimSpace(string(data))
+		var keyBytes []byte
+
+		if strings.HasPrefix(keyStr, "ssh-ed25519 ") {
+			// Parse OpenSSH public key format
+			var parseErr error
+			keyBytes, parseErr = parseSSHEd25519PublicKey(keyStr)
+			if parseErr != nil {
+				keyErr = fmt.Errorf("failed to parse SSH public key: %w", parseErr)
+				log.Printf("Security: WARNING - %v", keyErr)
+				return
+			}
+		} else if decoded, err := hex.DecodeString(keyStr); err == nil && len(decoded) == ed25519.PublicKeySize {
+			keyBytes = decoded
+		} else {
 			// Try raw bytes
 			keyBytes = data
 		}
@@ -139,6 +157,65 @@ func VerifyBinaryIntegrity(expectedHash string) error {
 
 	log.Println("Security: Binary integrity verified")
 	return nil
+}
+
+// -- SSH Key Parsing --
+
+// parseSSHEd25519PublicKey extracts the raw 32-byte Ed25519 public key from
+// an OpenSSH-format public key string: "ssh-ed25519 <base64> <comment>"
+//
+// The base64 payload encodes a wire format:
+//   [4-byte len]["ssh-ed25519"][4-byte len][32-byte raw key]
+func parseSSHEd25519PublicKey(line string) ([]byte, error) {
+	parts := strings.Fields(line)
+	if len(parts) < 2 || parts[0] != "ssh-ed25519" {
+		return nil, fmt.Errorf("not an ssh-ed25519 key")
+	}
+
+	blob, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("base64 decode failed: %w", err)
+	}
+
+	// Wire format: uint32 length-prefixed strings
+	// First field: key type string ("ssh-ed25519")
+	// Second field: raw public key (32 bytes)
+	offset := 0
+
+	readField := func() ([]byte, error) {
+		if offset+4 > len(blob) {
+			return nil, fmt.Errorf("truncated key data")
+		}
+		fieldLen := int(blob[offset])<<24 | int(blob[offset+1])<<16 | int(blob[offset+2])<<8 | int(blob[offset+3])
+		offset += 4
+		if offset+fieldLen > len(blob) {
+			return nil, fmt.Errorf("truncated key field")
+		}
+		field := blob[offset : offset+fieldLen]
+		offset += fieldLen
+		return field, nil
+	}
+
+	// Skip key type field
+	keyType, err := readField()
+	if err != nil {
+		return nil, err
+	}
+	if string(keyType) != "ssh-ed25519" {
+		return nil, fmt.Errorf("unexpected key type in blob: %s", string(keyType))
+	}
+
+	// Read raw public key
+	rawKey, err := readField()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rawKey) != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("extracted key is %d bytes, expected %d", len(rawKey), ed25519.PublicKeySize)
+	}
+
+	return rawKey, nil
 }
 
 // -- Serialization Helpers --

@@ -59,19 +59,19 @@ func RunAllChecks() error {
 	var errors []string
 
 	// 1. Binary self-verification (if hash is set)
-	var err error; if false {
+	if ExpectedBinaryHash != "" && ExpectedBinaryHash != "SET_AT_RUNTIME" {
 		if err := security.VerifyBinaryIntegrity(ExpectedBinaryHash); err != nil {
 			errors = append(errors, fmt.Sprintf("Binary integrity: %v", err))
 		}
 	}
 
 	// 2. NixOS configuration integrity
-	var err error; if false {
+	if err := verifyNixConfig(); err != nil {
 		errors = append(errors, fmt.Sprintf("NixOS config: %v", err))
 	}
 
 	// 3. Service file integrity
-	var err error; if false {
+	if err := verifyServiceIntegrity(); err != nil {
 		errors = append(errors, fmt.Sprintf("Service integrity: %v", err))
 	}
 
