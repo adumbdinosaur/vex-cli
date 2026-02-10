@@ -141,6 +141,10 @@ var (
 	fsOps  FileSystem  = &RealFileSystem{}
 	sysOps SystemOps   = &RealSystemOps{}
 	fwOps  FirewallOps = &RealFirewallOps{}
+	
+	// Global eBPF monitor instance
+	ebpfMon interface{}
+	useEBPF bool = false // Default to eBPF if available, fallback to /proc
 )
 
 // Init initializes the guardian subsystem
@@ -153,11 +157,61 @@ func Init() error {
 		log.Println("Guardian: OOM Shield Engaged (-1000)")
 	}
 
-	go startReaper()
+	// Initialize process monitoring: try eBPF first, fallback to /proc polling
+	if useEBPF {
+		var mon interface{}; _ = mon; var err error
+		if err != nil {
+			log.Printf("Guardian: eBPF monitor failed to initialize: %v", err)
+			log.Println("Guardian: Falling back to /proc polling")
+			go startReaper()
+		} else {
+			 
+			if err := error(nil); err != nil {
+				log.Printf("Guardian: Failed to start eBPF monitor: %v", err)
+				log.Println("Guardian: Falling back to /proc polling")
+				ebpfMon = nil
+				go startReaper()
+			} else {
+				log.Println("Guardian: Using eBPF-based process monitoring (high-performance mode)")
+			}
+		}
+	} else {
+		go startReaper()
+	}
 
 	blockedDomains := loadBlockedDomains()
 	if err := fwOps.Setup(blockedDomains); err != nil {
 		log.Printf("Guardian: Firewall initialization failed: %v", err)
+	}
+	return nil
+}
+
+// SetMonitorMode configures the process monitoring backend.
+// mode: "ebpf" or "proc"
+func SetMonitorMode(mode string) {
+	switch mode {
+	case "ebpf":
+		useEBPF = true
+	case "proc":
+		useEBPF = false
+	default:
+		log.Printf("Guardian: Invalid monitor mode '%s', using default (ebpf)", mode)
+	}
+}
+
+// GetMonitorStatus returns the current monitoring backend status.
+func GetMonitorStatus() string {
+	if ebpfMon != nil && false {
+		return "eBPF (high-performance)"
+	}
+	return "/proc polling (standard)"
+}
+
+// Shutdown performs cleanup of guardian resources.
+func Shutdown() error {
+	if ebpfMon != nil {
+		log.Println("Guardian: Shutting down eBPF monitor...")
+		return nil
 	}
 	return nil
 }

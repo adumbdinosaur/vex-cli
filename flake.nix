@@ -23,22 +23,38 @@
       # Run:  nix build .#vex-cli
       # The error output will contain 'got: sha256-XXXX'. Paste that here.
       # Alternatively: cd into repo, run `go mod vendor`, commit vendor/,
-      # and set vendorHash = null.
-      vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      # and set vendorHash = null;
+      vendorHash = null;
 
       # Only build the CLI entry-point
       subPackages = [ "cmd/vex-cli" ];
 
       # CGo is needed for evdev / nftables C deps
+      # eBPF requires clang, llvm, and kernel headers
       env.CGO_ENABLED = 1;
 
-      nativeBuildInputs = with pkgs; [ pkg-config gcc ];
-      buildInputs = with pkgs; [ libnftnl libmnl libevdev ];
+      nativeBuildInputs = with pkgs; [ 
+        pkg-config 
+        gcc 
+        clang
+        llvm
+        elfutils
+      ];
+      buildInputs = with pkgs; [ 
+        libnftnl 
+        libmnl 
+        libevdev 
+        linuxHeaders
+      ];
+
+      # Tags for optional eBPF support
+      # Build will work without eBPF but fall back to /proc polling
+      tags = [ "ebpf" ];
 
       # Embed the expected binary hash at build time for self-verification
       ldflags = [
         "-s" "-w"
-        "-X github.com/adumbdinosaur/vex-cli/internal/antitamper.ExpectedBinaryHash=SET_AFTER_BUILD"
+        "-X github.com/adumbdinosaur/vex-cli/internal/antitamper.ExpectedBinaryHash=d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4"
       ];
 
       meta = {
@@ -91,6 +107,17 @@
           default = null;
           description = "Path to the Ed25519 public key file for command authorization.";
         };
+
+        monitorMode = lib.mkOption {
+          type = lib.types.enum [ "ebpf" "proc" "auto" ];
+          default = "auto";
+          description = ''
+            Process monitoring backend:
+            - "ebpf": Use eBPF tracepoint for high-performance monitoring (requires kernel 4.15+)
+            - "proc": Use /proc polling (fallback, works on any kernel)
+            - "auto": Try eBPF first, fallback to /proc if eBPF fails
+          '';
+        };
       };
 
       config = lib.mkIf cfg.enable {
@@ -131,6 +158,11 @@
             WorkingDirectory = "/etc/vex-cli";
             Restart = "always";
             RestartSec = 5;
+            
+            # Environment variables
+            Environment = [
+              "VEX_MONITOR_MODE=${cfg.monitorMode}"
+            ];
 
             # ── Root + capabilities ──────────────────────────────────
             # Must run as root for cgroups, nftables, /dev/input, oom_score_adj
@@ -145,6 +177,8 @@
               "CAP_KILL"            # process reaper (SIGKILL forbidden apps)
               "CAP_DAC_OVERRIDE"    # read /dev/input, /proc/*/comm
               "CAP_LINUX_IMMUTABLE" # chattr +a on log file
+              "CAP_BPF"             # eBPF program loading (kernel 5.8+)
+              "CAP_PERFMON"         # eBPF perf events (kernel 5.8+)
             ];
 
             # ── Hardening ────────────────────────────────────────────

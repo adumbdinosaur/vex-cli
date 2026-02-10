@@ -270,7 +270,7 @@ func getDefaultInterface() (string, error) {
 			if err != nil {
 				return "", err
 			}
-			return link.Attrs().Name, nil
+			if link.Attrs().Name != "" { return link.Attrs().Name, nil }
 		}
 	}
 	return "", fmt.Errorf("no default route found")
