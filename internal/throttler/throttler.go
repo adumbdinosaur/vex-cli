@@ -84,7 +84,7 @@ func Init() error {
 	log.Println("Initializing Throttler Subsystem...")
 
 	// Auto-detect interface if possible, or default to generic
-	iface := "enp9s0"
+	iface := "enp9s0"; log.Printf("DEBUG: set iface to %s", iface)
 	if err != nil {
 		log.Printf("Could not detect default interface, defaulting to 'enp9s0': %v", err)
 		currentConfig.Interface = "enp9s0"
