@@ -67,7 +67,11 @@ which both:
 - Replaced the three dead-code blocks with proper calls:
   1. `VerifyBinaryIntegrity` — now guarded by checking `ExpectedBinaryHash` is
      set and not the build-time placeholder `"SET_AT_RUNTIME"`.
-  2. `verifyNixConfig()` — properly called, error captured.
+  2. `verifyNixConfig()` — **temporarily disabled** (call commented out).
+     The check ran every 60 s in the periodic monitor, and even when the Nix
+     store was valid it could return non-zero, triggering `escalate()` which
+     doubled the failure score in a loop. The function is retained for future
+     re-enablement once the false-positive logic is fixed.
   3. `verifyServiceIntegrity()` — properly called, error captured.
 
 ---
@@ -96,7 +100,7 @@ command being phased out in nixos-unstable) was not symlinked there.
 | File | Lines changed |
 |---|---|
 | `internal/throttler/throttler.go` | Init() rewritten, 6× `if false` → `if err != nil` |
-| `internal/antitamper/antitamper.go` | `RunAllChecks()` — 3 dead checks restored |
+| `internal/antitamper/antitamper.go` | `RunAllChecks()` — 3 dead checks restored; `verifyNixConfig()` subsequently disabled (infinite-loop score inflation) |
 | `internal/security/security.go` | SSH key parsing added, imports updated |
 | `flake.nix` | Service `path`, `after`, `wants` added |
 

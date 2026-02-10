@@ -7,3 +7,4 @@ result
 *-flake.nix
 bar/
 vex-status.sh
+bin/

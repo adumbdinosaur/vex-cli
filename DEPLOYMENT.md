@@ -192,7 +192,7 @@ vex-cli throttle moderate --entropy 50 --signature throttle.sig
 - **Root-only service**: vex-cli runs as root with Linux capabilities
 - **Append-only log**: /var/log/vex-cli.log with `chattr +a` immutability
 - **Cryptographic signatures**: Ed25519 verification for restricted commands
-- **Anti-tamper**: Periodic checks of NixOS configuration, service integrity, debugger detection
+- **Anti-tamper**: Periodic checks of service integrity and debugger detection. NixOS configuration integrity check is temporarily disabled (causes false-positive score inflation); will be re-enabled in a future release
 - **Defense-in-depth**: SNI blocking + DNS sinkhole + process reaping
 
 ## Troubleshooting

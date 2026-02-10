@@ -245,7 +245,7 @@ socket. Every exchange is one request followed by one response.
 | `lines-status`| none                            | Returns writing task progress        |
 | `lines-submit`| `{"line": "..."}`               | Submits one line, validates match    |
 | `unlock`     | none                             | Restores all to defaults, persists   |
-| `check`      | none                             | Runs anti-tamper checks              |
+| `check`      | none                             | Runs anti-tamper checks (NixOS integrity check currently disabled) |
 
 Every handler that mutates state also auto-persists to
 `/var/lib/vex-cli/system-state.json` after the handler returns.
@@ -295,7 +295,7 @@ Profile aliases also include `uncapped` → `standard`.
 | Guardian       | `internal/guardian`             | nftables SNI blocking, process reaper  |
 | Surveillance   | `internal/surveillance`         | Keyboard monitoring, latency injection |
 | Penance        | `internal/penance`              | Manifest loading, compliance checks    |
-| Anti-tamper    | `internal/antitamper`           | Binary/config integrity verification   |
+| Anti-tamper    | `internal/antitamper`           | Binary/service integrity verification (NixOS config check temporarily disabled) |
 | Logging        | `internal/logging`              | Append-only audit log                  |
 | Security       | `internal/security`             | Ed25519 signed command verification    |
 | State          | `internal/state`                | Unified state load/save                |

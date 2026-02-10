@@ -52,7 +52,7 @@ The vex-cli is a kernel-integrated administration and disciplinary interface des
 
     Binary Self-Verification: The CLI and Surveillance Daemon must perform periodic SHA-256 self-checks.
 
-    NixOS Integration: Full integration into the vex-dominion flake; the system state is verified against the Nix store to prevent manual configuration overrides.
+    NixOS Integration: Full integration into the vex-dominion flake; the system state is verified against the Nix store to prevent manual configuration overrides. **Note:** The Nix store integrity check (`verifyNixConfig`) is temporarily disabled due to false-positive score inflation — it will be re-enabled once the check logic is fixed.
 
     Automatic Escalation: Detection of service tampering or unauthorized root interference triggers an immediate black-hole network state and doubles the current failure_score.
 
