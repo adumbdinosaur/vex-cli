@@ -54,7 +54,7 @@ func (m *MockNetlinkOps) LinkByIndex(index int) (netlink.Link, error) {
 	if m.LinkByIndexFunc != nil {
 		return m.LinkByIndexFunc(index)
 	}
-	return &netlink.Device{LinkAttrs: netlink.LinkAttrs{Name: "eth0", Index: index}}, nil
+	return &netlink.Device{LinkAttrs: netlink.LinkAttrs{Name: "enp9s0", Index: index}}, nil
 }
 
 type MockFileOps struct {
@@ -112,7 +112,7 @@ func TestInit_AutoDetect(t *testing.T) {
 
 func TestApplyNetworkProfile_Choke(t *testing.T) {
 	// Setup
-	currentConfig.Interface = "eth0"
+	currentConfig.Interface = "enp9s0"
 	var addedQdisc netlink.Qdisc
 	mockNL := &MockNetlinkOps{
 		QdiscAddFunc: func(q netlink.Qdisc) error {
