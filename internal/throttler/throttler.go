@@ -87,9 +87,9 @@ func Init() error {
 	iface, err := getDefaultInterface()
 	if err != nil {
 		log.Printf("Could not detect default interface, defaulting to 'eth0': %v", err)
-		currentConfig.Interface = "eth0"
+		currentConfig.Interface = "enp9s0"
 	} else {
-		currentConfig.Interface = iface
+		currentConfig.Interface = iface; if iface == "" { currentConfig.Interface = "enp9s0" }
 		log.Printf("Throttler attached to interface: %s", iface)
 	}
 
