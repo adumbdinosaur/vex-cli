@@ -1,5 +1,6 @@
+//go:build linux && ebpf
 
-package ignore
+package guardian
 
 import (
 	"bytes"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"syscall"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"

@@ -1,0 +1,371 @@
+
+[VEX-CLI] 2026/02/10 04:05:28 Logging subsystem initialized.
+[VEX-CLI] 2026/02/10 04:05:28 Starting VEX-CLI (Protocol 106-V)...
+[VEX-CLI] 2026/02/10 04:05:28 Security: Loading management key...
+[VEX-CLI] 2026/02/10 04:05:28 Security: WARNING - failed to load management key from /etc/vex-cli/vex_management_key.pub: open /etc/vex-cli/vex_management_key.pub: no such file or directory
+[VEX-CLI] 2026/02/10 04:05:28 Security: Commands requiring authorization will be REJECTED
+[VEX-CLI] 2026/02/10 04:05:28 Security initialization warning: failed to load management key from /etc/vex-cli/vex_management_key.pub: open /etc/vex-cli/vex_management_key.pub: no such file or directory
+[VEX-CLI] 2026/02/10 04:05:28 CMD: init | ARGS:  | COMPLIANCE: score=0,status=pending,locked=true | TIME: 2026-02-10T04:05:28Z
+[VEX-CLI] 2026/02/10 04:05:28 Initializing all subsystems...
+[VEX-CLI] 2026/02/10 04:05:28 Initializing Throttler Subsystem...
+[VEX-CLI] 2026/02/10 04:05:28 Could not detect default interface, defaulting to 'eth0': no default route found
+[VEX-CLI] 2026/02/10 04:05:28 Initializing Guardian Subsystem...
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: OOM Shield Engaged (-1000)
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: No blocked-domains.json found, using defaults (7 domains)
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: Added SNI block rule for: store.steampowered.com
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: Added SNI block rule for: discord.com
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: Added SNI block rule for: discord.gg
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: Added SNI block rule for: discordapp.com
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: Process Reaper Started
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: Added SNI block rule for: reddit.com
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: Added SNI block rule for: twitch.tv
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: Added SNI block rule for: youtube.com
+[VEX-CLI] 2026/02/10 04:05:28 Guardian: NFTables 'vex-guardian' initialized with 7 SNI block rules.
+[VEX-CLI] 2026/02/10 04:05:28 Initializing Surveillance Subsystem...
+[VEX-CLI] 2026/02/10 04:05:28 Surveillance: Warning - No keyboards detected to monitor.
+[VEX-CLI] 2026/02/10 04:05:28 Initializing Penance Subsystem...
+[VEX-CLI] 2026/02/10 04:05:28 Penance: Loaded Manifest 1.06-V for Worker-LXC-106
+[VEX-CLI] 2026/02/10 04:05:28 Penance: Active Task: P-106-LATENCY-SUMMARY (technical_summary)
+[VEX-CLI] 2026/02/10 04:05:28 Penance: Enforcing Network Profile: choke (Packet Loss: 15.50%)
+[VEX-CLI] 2026/02/10 04:05:28 Penance initialization warning: failed to enforce system state: failed to apply network profile with entropy: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:05:28 Initializing Anti-Tamper Subsystem...
+[VEX-CLI] 2026/02/10 04:05:28 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:05:28 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:05:28 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:05:28 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:05:28 Anti-Tamper: Failure score DOUBLED: 0 -> 50
+[VEX-CLI] 2026/02/10 04:05:28 Anti-Tamper: Initial check detected issues: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b
+[VEX-CLI] 2026/02/10 04:05:28 Anti-Tamper: Monitoring active
+[VEX-CLI] 2026/02/10 04:05:28 All subsystems initialized. Entering monitoring mode...
+[VEX-CLI] 2026/02/10 04:05:30 Logging subsystem initialized.
+[VEX-CLI] 2026/02/10 04:05:30 Starting VEX-CLI (Protocol 106-V)...
+[VEX-CLI] 2026/02/10 04:05:30 Security: Loading management key...
+[VEX-CLI] 2026/02/10 04:05:30 Security: WARNING - invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:05:30 Security initialization warning: invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:05:30 CMD: init | ARGS:  | COMPLIANCE: score=50,status=failed,locked=true | TIME: 2026-02-10T04:05:30Z
+[VEX-CLI] 2026/02/10 04:05:30 Initializing all subsystems...
+[VEX-CLI] 2026/02/10 04:05:30 Initializing Throttler Subsystem...
+[VEX-CLI] 2026/02/10 04:05:30 Could not detect default interface, defaulting to 'eth0': no default route found
+[VEX-CLI] 2026/02/10 04:05:30 Initializing Guardian Subsystem...
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: OOM Shield Engaged (-1000)
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: No blocked-domains.json found, using defaults (7 domains)
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: Added SNI block rule for: store.steampowered.com
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: Added SNI block rule for: discord.com
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: Added SNI block rule for: discord.gg
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: Added SNI block rule for: discordapp.com
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: Added SNI block rule for: reddit.com
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: Process Reaper Started
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: Added SNI block rule for: twitch.tv
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: Added SNI block rule for: youtube.com
+[VEX-CLI] 2026/02/10 04:05:30 Guardian: NFTables 'vex-guardian' initialized with 7 SNI block rules.
+[VEX-CLI] 2026/02/10 04:05:30 Initializing Surveillance Subsystem...
+[VEX-CLI] 2026/02/10 04:05:30 Surveillance: Warning - No keyboards detected to monitor.
+[VEX-CLI] 2026/02/10 04:05:30 Initializing Penance Subsystem...
+[VEX-CLI] 2026/02/10 04:05:30 Penance: Loaded Manifest 1.06-V for Worker-LXC-106
+[VEX-CLI] 2026/02/10 04:05:30 Penance: Active Task: P-106-LATENCY-SUMMARY (technical_summary)
+[VEX-CLI] 2026/02/10 04:05:30 Penance: Enforcing Network Profile: choke (Packet Loss: 15.50%)
+[VEX-CLI] 2026/02/10 04:05:30 Penance initialization warning: failed to enforce system state: failed to apply network profile with entropy: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:05:30 Initializing Anti-Tamper Subsystem...
+[VEX-CLI] 2026/02/10 04:05:30 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:05:30 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:05:30 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:05:30 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:05:30 Anti-Tamper: Failure score DOUBLED: 50 -> 100
+[VEX-CLI] 2026/02/10 04:05:30 Anti-Tamper: Initial check detected issues: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b
+[VEX-CLI] 2026/02/10 04:05:30 Anti-Tamper: Monitoring active
+[VEX-CLI] 2026/02/10 04:05:30 All subsystems initialized. Entering monitoring mode...
+[VEX-CLI] 2026/02/10 04:06:00 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:06:30 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:06:30 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:06:30 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:06:30 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:06:30 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:06:30 Anti-Tamper: Failure score DOUBLED: 100 -> 200
+[VEX-CLI] 2026/02/10 04:06:30 Anti-Tamper: Periodic check failed: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b
+[VEX-CLI] 2026/02/10 04:07:00 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:07:30 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:07:30 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:07:30 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:07:30 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:07:30 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:07:30 Anti-Tamper: Failure score DOUBLED: 200 -> 400
+[VEX-CLI] 2026/02/10 04:07:30 Anti-Tamper: Periodic check failed: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b
+[VEX-CLI] 2026/02/10 04:08:00 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:08:30 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:08:30 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:08:30 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:08:30 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:08:30 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:08:30 Anti-Tamper: Failure score DOUBLED: 400 -> 800
+[VEX-CLI] 2026/02/10 04:08:30 Anti-Tamper: Periodic check failed: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b
+[VEX-CLI] 2026/02/10 04:09:00 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:09:30 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:09:30 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:09:30 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:09:30 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:09:30 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:09:30 Anti-Tamper: Failure score DOUBLED: 800 -> 1600
+[VEX-CLI] 2026/02/10 04:09:30 Anti-Tamper: Periodic check failed: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b
+[VEX-CLI] 2026/02/10 04:10:00 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:10:30 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: Failure score DOUBLED: 1600 -> 3200
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: Periodic check failed: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b
+[VEX-CLI] 2026/02/10 04:10:30 Logging subsystem initialized.
+[VEX-CLI] 2026/02/10 04:10:30 Starting VEX-CLI (Protocol 106-V)...
+[VEX-CLI] 2026/02/10 04:10:30 Security: Loading management key...
+[VEX-CLI] 2026/02/10 04:10:30 Security: WARNING - invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:10:30 Security initialization warning: invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:10:30 CMD: check | ARGS:  | COMPLIANCE: score=3200,status=failed,locked=true | TIME: 2026-02-10T04:10:30Z
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: Failed to apply black-hole: failed to find interface : Link not found
+[VEX-CLI] 2026/02/10 04:10:30 Anti-Tamper: Failure score DOUBLED: 3200 -> 6400
+[VEX-CLI] 2026/02/10 04:11:00 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:11:30 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:11:30 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:11:30 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:11:30 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:11:30 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:11:30 Anti-Tamper: Failure score DOUBLED: 6400 -> 12800
+[VEX-CLI] 2026/02/10 04:11:30 Anti-Tamper: Periodic check failed: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b
+[VEX-CLI] 2026/02/10 04:12:00 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:12:30 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:12:30 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:12:30 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:12:30 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:12:30 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:12:30 Anti-Tamper: Failure score DOUBLED: 12800 -> 25600
+[VEX-CLI] 2026/02/10 04:12:30 Anti-Tamper: Periodic check failed: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b
+[VEX-CLI] 2026/02/10 04:13:00 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:13:30 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:13:30 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:13:30 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:13:30 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b]
+[VEX-CLI] 2026/02/10 04:13:30 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:13:30 Anti-Tamper: Failure score DOUBLED: 25600 -> 51200
+[VEX-CLI] 2026/02/10 04:13:30 Anti-Tamper: Periodic check failed: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got b2d48bb4bbf609a80a2fce39d89c325c9068c41b6a19c3bb1fe9698e268f429b
+[VEX-CLI] 2026/02/10 04:14:31 Logging subsystem initialized.
+[VEX-CLI] 2026/02/10 04:14:31 Starting VEX-CLI (Protocol 106-V)...
+[VEX-CLI] 2026/02/10 04:14:31 Security: Loading management key...
+[VEX-CLI] 2026/02/10 04:14:31 Security: WARNING - invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:14:31 Security initialization warning: invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:14:31 CMD: init | ARGS:  | COMPLIANCE: score=51200,status=failed,locked=true | TIME: 2026-02-10T04:14:31Z
+[VEX-CLI] 2026/02/10 04:14:31 Initializing all subsystems...
+[VEX-CLI] 2026/02/10 04:14:31 Initializing Throttler Subsystem...
+[VEX-CLI] 2026/02/10 04:14:31 Could not detect default interface, defaulting to 'eth0': no default route found
+[VEX-CLI] 2026/02/10 04:14:31 Initializing Guardian Subsystem...
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: OOM Shield Engaged (-1000)
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: No blocked-domains.json found, using defaults (7 domains)
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: Added SNI block rule for: store.steampowered.com
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: Added SNI block rule for: discord.com
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: Added SNI block rule for: discord.gg
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: Added SNI block rule for: discordapp.com
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: Process Reaper Started
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: Added SNI block rule for: reddit.com
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: Added SNI block rule for: twitch.tv
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: Added SNI block rule for: youtube.com
+[VEX-CLI] 2026/02/10 04:14:31 Guardian: NFTables 'vex-guardian' initialized with 7 SNI block rules.
+[VEX-CLI] 2026/02/10 04:14:31 Initializing Surveillance Subsystem...
+[VEX-CLI] 2026/02/10 04:14:31 Surveillance: Warning - No keyboards detected to monitor.
+[VEX-CLI] 2026/02/10 04:14:31 Initializing Penance Subsystem...
+[VEX-CLI] 2026/02/10 04:14:31 Penance: Loaded Manifest 1.06-V for Worker-LXC-106
+[VEX-CLI] 2026/02/10 04:14:31 Penance: Active Task: P-106-LATENCY-SUMMARY (technical_summary)
+[VEX-CLI] 2026/02/10 04:14:31 Penance: Enforcing Network Profile: choke (Packet Loss: 15.50%)
+[VEX-CLI] 2026/02/10 04:14:31 Penance initialization warning: failed to enforce system state: failed to apply network profile with entropy: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:14:31 Initializing Anti-Tamper Subsystem...
+[VEX-CLI] 2026/02/10 04:14:31 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:14:31 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:14:31 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08]
+[VEX-CLI] 2026/02/10 04:14:31 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:14:31 Anti-Tamper: Failure score DOUBLED: 51200 -> 102400
+[VEX-CLI] 2026/02/10 04:14:31 Anti-Tamper: Initial check detected issues: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08
+[VEX-CLI] 2026/02/10 04:14:31 Anti-Tamper: Monitoring active
+[VEX-CLI] 2026/02/10 04:14:31 All subsystems initialized. Entering monitoring mode...
+[VEX-CLI] 2026/02/10 04:14:34 Logging subsystem initialized.
+[VEX-CLI] 2026/02/10 04:14:34 Starting VEX-CLI (Protocol 106-V)...
+[VEX-CLI] 2026/02/10 04:14:34 Security: Loading management key...
+[VEX-CLI] 2026/02/10 04:14:34 Security: WARNING - invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:14:34 Security initialization warning: invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:14:34 CMD: penance | ARGS:  | COMPLIANCE: score=0,status=pending,locked=true | TIME: 2026-02-10T04:14:34Z
+[VEX-CLI] 2026/02/10 04:14:34 Initializing Throttler Subsystem...
+[VEX-CLI] 2026/02/10 04:14:34 Could not detect default interface, defaulting to 'eth0': no default route found
+[VEX-CLI] 2026/02/10 04:14:34 Initializing Surveillance Subsystem...
+[VEX-CLI] 2026/02/10 04:14:35 Surveillance: Attaching to keyboard: USB-HID Keyboard (/dev/input/event17)
+[VEX-CLI] 2026/02/10 04:14:35 Surveillance: Attaching to keyboard: USB-HID Keyboard System Control (/dev/input/event18)
+[VEX-CLI] 2026/02/10 04:14:35 Surveillance: Attaching to keyboard: USB-HID Keyboard Consumer Control (/dev/input/event19)
+[VEX-CLI] 2026/02/10 04:14:35 Surveillance: Attaching to keyboard: USB-HID Keyboard Mouse (/dev/input/event20)
+[VEX-CLI] 2026/02/10 04:14:35 Surveillance: Attaching to keyboard: USB-HID Keyboard (/dev/input/event21)
+[VEX-CLI] 2026/02/10 04:14:35 Surveillance: Attaching to keyboard: Logitech G502 (/dev/input/event22)
+[VEX-CLI] 2026/02/10 04:14:35 Initializing Penance Subsystem...
+[VEX-CLI] 2026/02/10 04:14:35 Penance initialization failed: failed to load manifest: open penance-manifest.json: no such file or directory
+[VEX-CLI] 2026/02/10 04:15:01 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:15:18 Logging subsystem initialized.
+[VEX-CLI] 2026/02/10 04:15:18 Starting VEX-CLI (Protocol 106-V)...
+[VEX-CLI] 2026/02/10 04:15:18 Security: Loading management key...
+[VEX-CLI] 2026/02/10 04:15:18 Security: WARNING - invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:15:18 Security initialization warning: invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:15:18 CMD: init | ARGS:  | COMPLIANCE: score=102400,status=failed,locked=true | TIME: 2026-02-10T04:15:18Z
+[VEX-CLI] 2026/02/10 04:15:18 Initializing all subsystems...
+[VEX-CLI] 2026/02/10 04:15:18 Initializing Throttler Subsystem...
+[VEX-CLI] 2026/02/10 04:15:18 Could not detect default interface, defaulting to 'eth0': no default route found
+[VEX-CLI] 2026/02/10 04:15:18 Initializing Guardian Subsystem...
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: OOM Shield Engaged (-1000)
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: No blocked-domains.json found, using defaults (7 domains)
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: Added SNI block rule for: store.steampowered.com
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: Process Reaper Started
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: Added SNI block rule for: discord.com
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: Added SNI block rule for: discord.gg
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: Added SNI block rule for: discordapp.com
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: Added SNI block rule for: reddit.com
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: Added SNI block rule for: twitch.tv
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: Added SNI block rule for: youtube.com
+[VEX-CLI] 2026/02/10 04:15:18 Guardian: NFTables 'vex-guardian' initialized with 7 SNI block rules.
+[VEX-CLI] 2026/02/10 04:15:18 Initializing Surveillance Subsystem...
+[VEX-CLI] 2026/02/10 04:15:18 Surveillance: Warning - No keyboards detected to monitor.
+[VEX-CLI] 2026/02/10 04:15:18 Initializing Penance Subsystem...
+[VEX-CLI] 2026/02/10 04:15:18 Penance: Loaded Manifest 1.06-V for Worker-LXC-106
+[VEX-CLI] 2026/02/10 04:15:18 Penance: Active Task: P-106-LATENCY-SUMMARY (technical_summary)
+[VEX-CLI] 2026/02/10 04:15:18 Penance: Enforcing Network Profile: choke (Packet Loss: 15.50%)
+[VEX-CLI] 2026/02/10 04:15:18 Penance initialization warning: failed to enforce system state: failed to apply network profile with entropy: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:15:18 Initializing Anti-Tamper Subsystem...
+[VEX-CLI] 2026/02/10 04:15:18 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:15:18 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:15:18 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08]
+[VEX-CLI] 2026/02/10 04:15:18 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:15:18 Anti-Tamper: Failure score DOUBLED: 102400 -> 204800
+[VEX-CLI] 2026/02/10 04:15:18 Anti-Tamper: Initial check detected issues: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08
+[VEX-CLI] 2026/02/10 04:15:18 Anti-Tamper: Monitoring active
+[VEX-CLI] 2026/02/10 04:15:18 All subsystems initialized. Entering monitoring mode...
+[VEX-CLI] 2026/02/10 04:15:34 Logging subsystem initialized.
+[VEX-CLI] 2026/02/10 04:15:34 Starting VEX-CLI (Protocol 106-V)...
+[VEX-CLI] 2026/02/10 04:15:34 Security: Loading management key...
+[VEX-CLI] 2026/02/10 04:15:34 Security: WARNING - invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:15:34 Security initialization warning: invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:15:34 CMD: check | ARGS:  | COMPLIANCE: score=204800,status=failed,locked=true | TIME: 2026-02-10T04:15:34Z
+[VEX-CLI] 2026/02/10 04:15:34 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:15:34 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:15:34 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08]
+[VEX-CLI] 2026/02/10 04:15:34 Anti-Tamper: Failed to apply black-hole: failed to find interface : Link not found
+[VEX-CLI] 2026/02/10 04:15:34 Anti-Tamper: Failure score DOUBLED: 204800 -> 409600
+[VEX-CLI] 2026/02/10 04:15:48 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:15:48 Logging subsystem initialized.
+[VEX-CLI] 2026/02/10 04:15:48 Starting VEX-CLI (Protocol 106-V)...
+[VEX-CLI] 2026/02/10 04:15:48 Security: Loading management key...
+[VEX-CLI] 2026/02/10 04:15:48 Security: WARNING - invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:15:48 Security initialization warning: invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:15:48 CMD: init | ARGS:  | COMPLIANCE: score=409600,status=failed,locked=true | TIME: 2026-02-10T04:15:48Z
+[VEX-CLI] 2026/02/10 04:15:48 Initializing all subsystems...
+[VEX-CLI] 2026/02/10 04:15:48 Initializing Throttler Subsystem...
+[VEX-CLI] 2026/02/10 04:15:48 Could not detect default interface, defaulting to 'eth0': no default route found
+[VEX-CLI] 2026/02/10 04:15:48 Initializing Guardian Subsystem...
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: OOM Shield Engaged (-1000)
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: No blocked-domains.json found, using defaults (7 domains)
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: Added SNI block rule for: store.steampowered.com
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: Added SNI block rule for: discord.com
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: Added SNI block rule for: discord.gg
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: Added SNI block rule for: discordapp.com
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: Added SNI block rule for: reddit.com
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: Added SNI block rule for: twitch.tv
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: Added SNI block rule for: youtube.com
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: Process Reaper Started
+[VEX-CLI] 2026/02/10 04:15:48 Guardian: NFTables 'vex-guardian' initialized with 7 SNI block rules.
+[VEX-CLI] 2026/02/10 04:15:48 Initializing Surveillance Subsystem...
+[VEX-CLI] 2026/02/10 04:15:48 Surveillance: Warning - No keyboards detected to monitor.
+[VEX-CLI] 2026/02/10 04:15:48 Initializing Penance Subsystem...
+[VEX-CLI] 2026/02/10 04:15:48 Penance: Loaded Manifest 1.06-V for Worker-LXC-106
+[VEX-CLI] 2026/02/10 04:15:48 Penance: Active Task: P-106-LATENCY-SUMMARY (technical_summary)
+[VEX-CLI] 2026/02/10 04:15:48 Penance: Enforcing Network Profile: choke (Packet Loss: 15.50%)
+[VEX-CLI] 2026/02/10 04:15:48 Penance initialization warning: failed to enforce system state: failed to apply network profile with entropy: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:15:48 Initializing Anti-Tamper Subsystem...
+[VEX-CLI] 2026/02/10 04:15:48 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:15:48 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:15:48 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08]
+[VEX-CLI] 2026/02/10 04:15:48 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:15:48 Anti-Tamper: Failure score DOUBLED: 409600 -> 819200
+[VEX-CLI] 2026/02/10 04:15:48 Anti-Tamper: Initial check detected issues: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08
+[VEX-CLI] 2026/02/10 04:15:48 Anti-Tamper: Monitoring active
+[VEX-CLI] 2026/02/10 04:15:48 All subsystems initialized. Entering monitoring mode...
+[VEX-CLI] 2026/02/10 04:16:18 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:16:20 Logging subsystem initialized.
+[VEX-CLI] 2026/02/10 04:16:20 Starting VEX-CLI (Protocol 106-V)...
+[VEX-CLI] 2026/02/10 04:16:20 Security: Loading management key...
+[VEX-CLI] 2026/02/10 04:16:20 Security: WARNING - invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:16:20 Security initialization warning: invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:16:20 CMD: init | ARGS:  | COMPLIANCE: score=819200,status=failed,locked=true | TIME: 2026-02-10T04:16:20Z
+[VEX-CLI] 2026/02/10 04:16:20 Initializing all subsystems...
+[VEX-CLI] 2026/02/10 04:16:20 Initializing Throttler Subsystem...
+[VEX-CLI] 2026/02/10 04:16:20 Could not detect default interface, defaulting to 'eth0': no default route found
+[VEX-CLI] 2026/02/10 04:16:20 Initializing Guardian Subsystem...
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: OOM Shield Engaged (-1000)
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: No blocked-domains.json found, using defaults (7 domains)
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: Added SNI block rule for: store.steampowered.com
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: Added SNI block rule for: discord.com
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: Added SNI block rule for: discord.gg
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: Added SNI block rule for: discordapp.com
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: Process Reaper Started
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: Added SNI block rule for: reddit.com
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: Added SNI block rule for: twitch.tv
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: Added SNI block rule for: youtube.com
+[VEX-CLI] 2026/02/10 04:16:20 Guardian: NFTables 'vex-guardian' initialized with 7 SNI block rules.
+[VEX-CLI] 2026/02/10 04:16:20 Initializing Surveillance Subsystem...
+[VEX-CLI] 2026/02/10 04:16:20 Surveillance: Warning - No keyboards detected to monitor.
+[VEX-CLI] 2026/02/10 04:16:20 Initializing Penance Subsystem...
+[VEX-CLI] 2026/02/10 04:16:20 Penance: Loaded Manifest 1.06-V for Worker-LXC-106
+[VEX-CLI] 2026/02/10 04:16:20 Penance: Active Task: P-106-LATENCY-SUMMARY (technical_summary)
+[VEX-CLI] 2026/02/10 04:16:20 Penance: Enforcing Network Profile: choke (Packet Loss: 15.50%)
+[VEX-CLI] 2026/02/10 04:16:20 Penance initialization warning: failed to enforce system state: failed to apply network profile with entropy: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:16:20 Initializing Anti-Tamper Subsystem...
+[VEX-CLI] 2026/02/10 04:16:20 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:16:20 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:16:20 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08]
+[VEX-CLI] 2026/02/10 04:16:20 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:16:20 Anti-Tamper: Failure score DOUBLED: 819200 -> 1638400
+[VEX-CLI] 2026/02/10 04:16:20 Anti-Tamper: Initial check detected issues: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08
+[VEX-CLI] 2026/02/10 04:16:20 Anti-Tamper: Monitoring active
+[VEX-CLI] 2026/02/10 04:16:20 All subsystems initialized. Entering monitoring mode...
+[VEX-CLI] 2026/02/10 04:16:50 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:17:20 Surveillance Stats: 0 keystrokes total | 0.00 KPM | 0 lines
+[VEX-CLI] 2026/02/10 04:17:20 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:17:20 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:17:20 Anti-Tamper: ⚠️ ESCALATION TRIGGERED: [Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08]
+[VEX-CLI] 2026/02/10 04:17:20 Anti-Tamper: Failed to apply black-hole: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:17:20 Anti-Tamper: Failure score DOUBLED: 1638400 -> 3276800
+[VEX-CLI] 2026/02/10 04:17:20 Anti-Tamper: Periodic check failed: tamper detected: Binary integrity: BINARY INTEGRITY CHECK FAILED: expected d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4, got 37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08
+[VEX-CLI] 2026/02/10 04:18:09 Logging subsystem initialized.
+[VEX-CLI] 2026/02/10 04:18:09 Starting VEX-CLI (Protocol 106-V)...
+[VEX-CLI] 2026/02/10 04:18:09 Security: Loading management key...
+[VEX-CLI] 2026/02/10 04:18:09 Security: WARNING - invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:18:09 Security initialization warning: invalid key size: expected 32 bytes, got 106
+[VEX-CLI] 2026/02/10 04:18:09 CMD: init | ARGS:  | COMPLIANCE: score=3276800,status=failed,locked=true | TIME: 2026-02-10T04:18:09Z
+[VEX-CLI] 2026/02/10 04:18:09 Initializing all subsystems...
+[VEX-CLI] 2026/02/10 04:18:09 Initializing Throttler Subsystem...
+[VEX-CLI] 2026/02/10 04:18:09 Could not detect default interface, defaulting to 'eth0': no default route found
+[VEX-CLI] 2026/02/10 04:18:09 Initializing Guardian Subsystem...
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: OOM Shield Engaged (-1000)
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: No blocked-domains.json found, using defaults (7 domains)
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: Added SNI block rule for: store.steampowered.com
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: Added SNI block rule for: discord.com
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: Added SNI block rule for: discord.gg
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: Added SNI block rule for: discordapp.com
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: Added SNI block rule for: reddit.com
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: Added SNI block rule for: twitch.tv
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: Added SNI block rule for: youtube.com
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: Process Reaper Started
+[VEX-CLI] 2026/02/10 04:18:09 Guardian: NFTables 'vex-guardian' initialized with 7 SNI block rules.
+[VEX-CLI] 2026/02/10 04:18:09 Initializing Surveillance Subsystem...
+[VEX-CLI] 2026/02/10 04:18:09 Surveillance: Warning - No keyboards detected to monitor.
+[VEX-CLI] 2026/02/10 04:18:09 Initializing Penance Subsystem...
+[VEX-CLI] 2026/02/10 04:18:09 Penance: Loaded Manifest 1.06-V for Worker-LXC-106
+[VEX-CLI] 2026/02/10 04:18:09 Penance: Active Task: P-106-LATENCY-SUMMARY (technical_summary)
+[VEX-CLI] 2026/02/10 04:18:09 Penance: Enforcing Network Profile: choke (Packet Loss: 15.50%)
+[VEX-CLI] 2026/02/10 04:18:09 Penance initialization warning: failed to enforce system state: failed to apply network profile with entropy: failed to find interface eth0: Link not found
+[VEX-CLI] 2026/02/10 04:18:09 Initializing Anti-Tamper Subsystem...
+[VEX-CLI] 2026/02/10 04:18:09 Anti-Tamper: nix-store verify output: 
+[VEX-CLI] 2026/02/10 04:18:09 Anti-Tamper: Could not verify NixOS state version: exec: "nix-instantiate": executable file not found in $PATH
+[VEX-CLI] 2026/02/10 04:18:09 Anti-Tamper: Monitoring active
+[VEX-CLI] 2026/02/10 04:18:09 All subsystems initialized. Entering monitoring mode...
