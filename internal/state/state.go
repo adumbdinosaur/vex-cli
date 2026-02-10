@@ -35,6 +35,7 @@ type SystemState struct {
 	Compute     ComputeState   `json:"compute"`
 	Guardian    GuardianState  `json:"guardian"`
 	Compliance  ComplianceInfo `json:"compliance"`
+	Writing     WritingTask    `json:"writing"`
 }
 
 // NetworkState holds all network-shaping parameters.
@@ -52,8 +53,19 @@ type ComputeState struct {
 
 // GuardianState holds process-reaper and firewall config.
 type GuardianState struct {
-	FirewallEnabled bool `json:"firewall_enabled"` // SNI blocking active
-	ReaperEnabled   bool `json:"reaper_enabled"`   // Process reaper active
+	FirewallEnabled bool     `json:"firewall_enabled"` // SNI blocking active
+	ReaperEnabled   bool     `json:"reaper_enabled"`   // Process reaper active
+	BlockedDomains  []string `json:"blocked_domains"`  // Currently blocked SNI domains
+}
+
+// WritingTask represents a "write lines" punishment: the subject must
+// type an exact phrase a set number of times before the task is cleared.
+// The task persists across reboots until all lines are submitted.
+type WritingTask struct {
+	Active    bool   `json:"active"`
+	Phrase    string `json:"phrase"`
+	Required  int    `json:"required"`   // total lines to write
+	Completed int    `json:"completed"`  // lines accepted so far
 }
 
 // ComplianceInfo is a snapshot included for convenience — the authoritative
@@ -104,6 +116,7 @@ func Default() *SystemState {
 		Guardian: GuardianState{
 			FirewallEnabled: false,
 			ReaperEnabled:   true,
+			BlockedDomains:  []string{},
 		},
 		Compliance: ComplianceInfo{
 			Locked:       false,

@@ -177,8 +177,17 @@ sudo ./bin/vex-cli latency <ms>         # e.g. "latency 200" for 200ms
 # Set OOM score adjustment
 sudo ./bin/vex-cli oom <score>          # -1000 to 1000
 
-# Show guardian (firewall/reaper) status
-sudo ./bin/vex-cli block
+# Domain blocklist management
+sudo ./bin/vex-cli block list            # list blocked domains
+sudo ./bin/vex-cli block add <domain>    # add domain to SNI blocklist
+sudo ./bin/vex-cli block rm <domain>     # remove domain from blocklist
+sudo ./bin/vex-cli block <domain>        # shorthand for 'block add'
+
+# Writing-lines task (disciplinary)
+sudo ./bin/vex-cli lines set 50 "I will not play games during work hours"
+sudo ./bin/vex-cli lines status          # show progress
+sudo ./bin/vex-cli lines submit          # interactive: type lines one at a time
+sudo ./bin/vex-cli lines clear           # cancel the task
 
 # Lift all restrictions (requires signed authorization JSON)
 sudo ./bin/vex-cli unlock '<signed_json_payload>'
@@ -220,16 +229,23 @@ socket. Every exchange is one request followed by one response.
 
 ### Command reference
 
-| Command     | Args                        | Side-effects                         |
-|-------------|-----------------------------|--------------------------------------|
-| `status`    | none                        | Refreshes compliance from disk       |
-| `state`     | none                        | Raw state dump, no refresh           |
-| `throttle`  | `{"profile": "<name>"}`     | Applies qdisc to network interface   |
-| `cpu`       | `{"percent": "<int>"}`      | Writes cgroup v2 cpu.max             |
-| `latency`   | `{"ms": "<int>"}`           | Injects keyboard input delay         |
-| `oom`       | `{"score": "<int>"}`        | Writes /proc/self/oom_score_adj      |
-| `unlock`    | none                        | Restores all to defaults, persists   |
-| `check`     | none                        | Runs anti-tamper checks              |
+| Command      | Args                             | Side-effects                         |
+|--------------|----------------------------------|--------------------------------------|
+| `status`     | none                             | Refreshes compliance from disk       |
+| `state`      | none                             | Raw state dump, no refresh           |
+| `throttle`   | `{"profile": "<name>"}`          | Applies qdisc to network interface   |
+| `cpu`        | `{"percent": "<int>"}`           | Writes cgroup v2 cpu.max             |
+| `latency`    | `{"ms": "<int>"}`                | Injects keyboard input delay         |
+| `oom`        | `{"score": "<int>"}`             | Writes /proc/self/oom_score_adj      |
+| `block-add`  | `{"domain": "<fqdn>"}`          | Adds SNI block rule, rebuilds fw     |
+| `block-rm`   | `{"domain": "<fqdn>"}`          | Removes SNI block rule, rebuilds fw  |
+| `block-list` | none                             | Returns blocked domains in state     |
+| `lines-set`  | `{"phrase":"...","count":"N"}`  | Sets a writing-lines task            |
+| `lines-clear`| none                             | Cancels the active writing task      |
+| `lines-status`| none                            | Returns writing task progress        |
+| `lines-submit`| `{"line": "..."}`               | Submits one line, validates match    |
+| `unlock`     | none                             | Restores all to defaults, persists   |
+| `check`      | none                             | Runs anti-tamper checks              |
 
 Every handler that mutates state also auto-persists to
 `/var/lib/vex-cli/system-state.json` after the handler returns.

@@ -36,6 +36,11 @@ type FirewallOps interface {
 	Clear() error
 }
 
+// -- State tracking --
+
+// activeDomains is the live set of blocked domains (kept in sync with nftables).
+var activeDomains []string
+
 // -- Real Implementations --
 
 type RealFileSystem struct{}
@@ -204,10 +209,12 @@ func Init(penaltyActive bool) error {
 
 	if penaltyActive {
 		blockedDomains := loadBlockedDomains()
+		activeDomains = blockedDomains
 		if err := fwOps.Setup(blockedDomains); err != nil {
 			log.Printf("Guardian: Firewall initialization failed: %v", err)
 		}
 	} else {
+		activeDomains = nil
 		log.Println("Guardian: No active penalty — skipping domain block rules")
 	}
 	return nil
@@ -259,6 +266,92 @@ func Shutdown() error {
 // ClearFirewall removes the vex-guardian nftables table (idempotent).
 func ClearFirewall() error {
 	return fwOps.Clear()
+}
+
+// GetBlockedDomains returns the currently active domain blocklist.
+func GetBlockedDomains() []string {
+	out := make([]string, len(activeDomains))
+	copy(out, activeDomains)
+	return out
+}
+
+// AddDomain adds a domain to the live blocklist and rebuilds the firewall.
+// Returns true if the domain was actually added (false if already present).
+func AddDomain(domain string) (bool, error) {
+	domain = strings.ToLower(strings.TrimSpace(domain))
+	if domain == "" {
+		return false, fmt.Errorf("empty domain")
+	}
+
+	// Check for duplicate
+	for _, d := range activeDomains {
+		if d == domain {
+			return false, nil
+		}
+	}
+
+	activeDomains = append(activeDomains, domain)
+	if err := rebuildFirewall(); err != nil {
+		// Roll back
+		activeDomains = activeDomains[:len(activeDomains)-1]
+		return false, err
+	}
+	log.Printf("Guardian: Domain added to blocklist: %s (total: %d)", domain, len(activeDomains))
+	return true, nil
+}
+
+// RemoveDomain removes a domain from the live blocklist and rebuilds the firewall.
+// Returns true if the domain was actually removed (false if not found).
+func RemoveDomain(domain string) (bool, error) {
+	domain = strings.ToLower(strings.TrimSpace(domain))
+	idx := -1
+	for i, d := range activeDomains {
+		if d == domain {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return false, nil
+	}
+
+	old := activeDomains
+	activeDomains = append(activeDomains[:idx], activeDomains[idx+1:]...)
+
+	if len(activeDomains) == 0 {
+		// No domains left — just clear the table
+		if err := fwOps.Clear(); err != nil {
+			activeDomains = old
+			return false, err
+		}
+	} else {
+		if err := rebuildFirewall(); err != nil {
+			activeDomains = old
+			return false, err
+		}
+	}
+	log.Printf("Guardian: Domain removed from blocklist: %s (total: %d)", domain, len(activeDomains))
+	return true, nil
+}
+
+// SetBlockedDomains replaces the live blocklist entirely and rebuilds the firewall.
+// Used on daemon startup to restore persisted state.
+func SetBlockedDomains(domains []string) error {
+	activeDomains = domains
+	if len(domains) == 0 {
+		return fwOps.Clear()
+	}
+	return rebuildFirewall()
+}
+
+// rebuildFirewall clears the existing table and rebuilds it with activeDomains.
+func rebuildFirewall() error {
+	// Clear first (ignore errors — table might not exist yet)
+	_ = fwOps.Clear()
+	if len(activeDomains) == 0 {
+		return nil
+	}
+	return fwOps.Setup(activeDomains)
 }
 
 // SNI block list default domains

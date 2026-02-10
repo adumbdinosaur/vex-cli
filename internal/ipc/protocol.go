@@ -7,16 +7,23 @@ import "github.com/adumbdinosaur/vex-cli/internal/state"
 // ── Command constants ───────────────────────────────────────────────
 
 const (
-	CmdStatus   = "status"
-	CmdThrottle = "throttle"
-	CmdCPU      = "cpu"
-	CmdLatency  = "latency"
-	CmdOOM      = "oom"
-	CmdBlock    = "block"
-	CmdUnlock   = "unlock"
-	CmdPenance  = "penance"
-	CmdCheck    = "check"
-	CmdState    = "state" // raw state dump
+	CmdStatus      = "status"
+	CmdThrottle    = "throttle"
+	CmdCPU         = "cpu"
+	CmdLatency     = "latency"
+	CmdOOM         = "oom"
+	CmdBlock       = "block"       // legacy: show guardian status
+	CmdBlockAdd    = "block-add"   // add a domain to the SNI blocklist
+	CmdBlockRemove = "block-rm"    // remove a domain from the SNI blocklist
+	CmdBlockList   = "block-list"  // list currently blocked domains
+	CmdUnlock      = "unlock"
+	CmdPenance     = "penance"
+	CmdCheck       = "check"
+	CmdState       = "state" // raw state dump
+	CmdLinesSet    = "lines-set"    // assign a writing-lines task
+	CmdLinesClear  = "lines-clear"  // cancel a writing-lines task
+	CmdLinesStatus = "lines-status" // check progress
+	CmdLinesSubmit = "lines-submit" // submit one line of text
 )
 
 // Request is sent from the CLI to the daemon over the socket.

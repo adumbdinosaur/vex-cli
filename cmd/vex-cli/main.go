@@ -86,13 +86,55 @@ func main() {
 	case "penance":
 		cmdPenance()
 	case "block":
-		cmdBlock()
+		if len(os.Args) < 3 {
+			cmdBlockList()
+			return
+		}
+		switch os.Args[2] {
+		case "add":
+			if len(os.Args) < 4 {
+				log.Fatal("Usage: vex-cli block add <domain>")
+			}
+			cmdBlockAdd(os.Args[3])
+		case "rm", "remove", "del":
+			if len(os.Args) < 4 {
+				log.Fatal("Usage: vex-cli block rm <domain>")
+			}
+			cmdBlockRemove(os.Args[3])
+		case "list", "ls":
+			cmdBlockList()
+		default:
+			// Treat as "block add <domain>" shorthand
+			cmdBlockAdd(os.Args[2])
+		}
 	case "unlock":
 		cmdUnlock()
 	case "state":
 		cmdState()
 	case "check":
 		cmdCheck()
+	case "lines":
+		if len(os.Args) < 3 {
+			cmdLinesStatus()
+			return
+		}
+		switch os.Args[2] {
+		case "set":
+			// vex-cli lines set <count> <phrase...>
+			if len(os.Args) < 5 {
+				log.Fatal("Usage: vex-cli lines set <count> <phrase>")
+			}
+			cmdLinesSet(os.Args[3], strings.Join(os.Args[4:], " "))
+		case "clear", "cancel":
+			cmdLinesClear()
+		case "status":
+			cmdLinesStatus()
+		case "submit":
+			cmdLinesSubmitInteractive()
+		default:
+			fmt.Printf("Unknown lines subcommand: %s\n", os.Args[2])
+			os.Exit(1)
+		}
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printUsage()
@@ -113,7 +155,16 @@ func printUsage() {
 	fmt.Println("  latency      Set input latency in milliseconds")
 	fmt.Println("  oom          Set OOM score adjustment (-1000 to 1000)")
 	fmt.Println("  penance      Start interactive penance submission session")
-	fmt.Println("  block        Show guardian status from the daemon")
+	fmt.Println("  block        Manage SNI domain blocklist:")
+	fmt.Println("    block add <domain>    Add a domain to the firewall blocklist")
+	fmt.Println("    block rm <domain>     Remove a domain from the blocklist")
+	fmt.Println("    block list            List currently blocked domains")
+	fmt.Println("    block <domain>        Shorthand for 'block add <domain>'")
+	fmt.Println("  lines        Manage writing-lines task:")
+	fmt.Println("    lines set <N> <phrase> Assign phrase to be written N times")
+	fmt.Println("    lines status           Show progress")
+	fmt.Println("    lines submit           Interactive submission (type lines)")
+	fmt.Println("    lines clear            Cancel the active task")
 	fmt.Println("  unlock       Lift all restrictions (requires signed authorization)")
 	fmt.Println("  check        Run anti-tamper and integrity checks")
 	fmt.Println()
@@ -179,6 +230,20 @@ func cmdStatus() {
 	fmt.Println("[GUARDIAN]")
 	fmt.Printf("  Firewall: %v\n", s.Guardian.FirewallEnabled)
 	fmt.Printf("  Reaper:   %v\n", s.Guardian.ReaperEnabled)
+	if len(s.Guardian.BlockedDomains) > 0 {
+		fmt.Printf("  Blocked:  %d domains\n", len(s.Guardian.BlockedDomains))
+		for _, d := range s.Guardian.BlockedDomains {
+			fmt.Printf("            - %s\n", d)
+		}
+	}
+
+	if s.Writing.Active {
+		fmt.Println()
+		fmt.Println("[WRITING TASK]")
+		fmt.Printf("  Phrase:    %q\n", s.Writing.Phrase)
+		fmt.Printf("  Progress:  %d / %d\n", s.Writing.Completed, s.Writing.Required)
+		fmt.Printf("  Remaining: %d\n", s.Writing.Required-s.Writing.Completed)
+	}
 
 	fmt.Println()
 	fmt.Printf("State last updated: %s (by: %s)\n", s.LastUpdated, s.ChangedBy)
@@ -289,24 +354,37 @@ func cmdPenance() {
 	fmt.Println("System state normalized. You may proceed.")
 }
 
-func cmdBlock() {
-	resp := sendOrDie(&ipc.Request{Command: ipc.CmdStatus})
+func cmdBlockAdd(domain string) {
+	resp := sendOrDie(&ipc.Request{
+		Command: ipc.CmdBlockAdd,
+		Args:    map[string]string{"domain": domain},
+	})
+	fmt.Println(resp.Message)
+}
+
+func cmdBlockRemove(domain string) {
+	resp := sendOrDie(&ipc.Request{
+		Command: ipc.CmdBlockRemove,
+		Args:    map[string]string{"domain": domain},
+	})
+	fmt.Println(resp.Message)
+}
+
+func cmdBlockList() {
+	resp := sendOrDie(&ipc.Request{Command: ipc.CmdBlockList})
 	s := resp.State
 
-	fmt.Println("[GUARDIAN STATUS]")
+	fmt.Println("[GUARDIAN — BLOCKED DOMAINS]")
 	fmt.Printf("  Firewall Enabled: %v\n", s.Guardian.FirewallEnabled)
 	fmt.Printf("  Process Reaper:   %v\n", s.Guardian.ReaperEnabled)
-	fmt.Printf("  OOM Score:        %d\n", s.Compute.OOMScoreAdj)
-
-	// Also show forbidden apps from local config
-	data, err := os.ReadFile("forbidden-apps.json")
-	if err == nil {
-		var config struct {
-			Apps []string `json:"forbidden_apps"`
+	fmt.Println()
+	if len(s.Guardian.BlockedDomains) == 0 {
+		fmt.Println("  (no domains blocked)")
+	} else {
+		for i, d := range s.Guardian.BlockedDomains {
+			fmt.Printf("  %d. %s\n", i+1, d)
 		}
-		if json.Unmarshal(data, &config) == nil {
-			fmt.Printf("  Forbidden Apps:   %v\n", config.Apps)
-		}
+		fmt.Printf("\n  Total: %d domains\n", len(s.Guardian.BlockedDomains))
 	}
 }
 
@@ -327,4 +405,87 @@ func getComplianceState() string {
 		return "unknown"
 	}
 	return fmt.Sprintf("score=%d,status=%s,locked=%v", cs.FailureScore, cs.TaskStatus, cs.Locked)
+}
+
+// ── Writing-lines CLI commands ──────────────────────────────────────
+
+func cmdLinesSet(countStr, phrase string) {
+	resp := sendOrDie(&ipc.Request{
+		Command: ipc.CmdLinesSet,
+		Args:    map[string]string{"phrase": phrase, "count": countStr},
+	})
+	fmt.Println(resp.Message)
+}
+
+func cmdLinesClear() {
+	resp := sendOrDie(&ipc.Request{Command: ipc.CmdLinesClear})
+	fmt.Println(resp.Message)
+}
+
+func cmdLinesStatus() {
+	resp := sendOrDie(&ipc.Request{Command: ipc.CmdLinesStatus})
+	s := resp.State
+
+	if !s.Writing.Active {
+		fmt.Println("No active writing task.")
+		return
+	}
+
+	remaining := s.Writing.Required - s.Writing.Completed
+	fmt.Println("[WRITING TASK]")
+	fmt.Printf("  Phrase:    %q\n", s.Writing.Phrase)
+	fmt.Printf("  Progress:  %d / %d\n", s.Writing.Completed, s.Writing.Required)
+	fmt.Printf("  Remaining: %d\n", remaining)
+}
+
+func cmdLinesSubmitInteractive() {
+	// First, check if there's an active task
+	statusResp := sendOrDie(&ipc.Request{Command: ipc.CmdLinesStatus})
+	s := statusResp.State
+	if !s.Writing.Active {
+		fmt.Println("No active writing task.")
+		return
+	}
+
+	remaining := s.Writing.Required - s.Writing.Completed
+	fmt.Println("========================================")
+	fmt.Println("WRITING LINES — DISCIPLINARY PROTOCOL")
+	fmt.Println("========================================")
+	fmt.Printf("Phrase:    %q\n", s.Writing.Phrase)
+	fmt.Printf("Remaining: %d lines\n", remaining)
+	fmt.Println("----------------------------------------")
+	fmt.Println("Type the exact phrase on each line. Ctrl+D to stop.")
+	fmt.Println("----------------------------------------")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	accepted := 0
+	rejected := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+		resp, err := client().Send(&ipc.Request{
+			Command: ipc.CmdLinesSubmit,
+			Args:    map[string]string{"line": line},
+		})
+		if err != nil {
+			log.Fatalf("Failed to communicate with vexd: %v", err)
+		}
+		if resp.OK {
+			accepted++
+			fmt.Printf("  ✓ %s\n", resp.Message)
+			// Check if task is now complete
+			if resp.State != nil && !resp.State.Writing.Active {
+				fmt.Println("\n" + resp.Message)
+				break
+			}
+		} else {
+			rejected++
+			fmt.Printf("  ✗ REJECTED: %s\n", resp.Error)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Printf("Error reading input: %v", err)
+	}
+
+	fmt.Printf("\nSession: %d accepted, %d rejected\n", accepted, rejected)
 }
