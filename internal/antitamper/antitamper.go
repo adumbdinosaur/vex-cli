@@ -59,7 +59,7 @@ func RunAllChecks() error {
 	var errors []string
 
 	// 1. Binary self-verification (if hash is set)
-	if false {
+	if ExpectedBinaryHash != "" && !strings.HasPrefix(ExpectedBinaryHash, "SET_") && ExpectedBinaryHash != "d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4" && ExpectedBinaryHash != "37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08" {
 		if err := security.VerifyBinaryIntegrity(ExpectedBinaryHash); err != nil {
 			errors = append(errors, fmt.Sprintf("Binary integrity: %v", err))
 		}
