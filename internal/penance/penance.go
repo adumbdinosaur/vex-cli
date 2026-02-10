@@ -109,11 +109,34 @@ func Init() error {
 	log.Printf("Penance: Loaded Manifest %s for %s", m.Version, m.Meta.TargetID)
 	log.Printf("Penance: Active Task: %s (%s)", m.Active.TaskID, m.Active.Type)
 
+	// Only enforce restrictions if a penance is actively in progress
+	cs, err := LoadComplianceStatus()
+	if err != nil {
+		log.Printf("Penance: Could not load compliance status, skipping enforcement: %v", err)
+		return nil
+	}
+
+	if !cs.Locked {
+		log.Println("Penance: No active penalty (system unlocked) — skipping enforcement")
+		return nil
+	}
+
+	log.Printf("Penance: System locked (score: %d, status: %s) — enforcing restrictions", cs.FailureScore, cs.TaskStatus)
 	if err := m.EnforceState(); err != nil {
 		return fmt.Errorf("failed to enforce system state: %w", err)
 	}
 
 	return nil
+}
+
+// IsPenaltyActive returns whether the system currently has an active penalty.
+// Returns true as a fail-safe if compliance status cannot be determined.
+func IsPenaltyActive() bool {
+	cs, err := LoadComplianceStatus()
+	if err != nil {
+		return true // Fail-safe: assume active if we can't determine
+	}
+	return cs.Locked
 }
 
 func LoadManifest(filename string) (*Manifest, error) {
@@ -148,6 +171,17 @@ func (m *Manifest) EnforceState() error {
 		if err := throttler.SetCPULimit(overrides.Compute.CPULimit); err != nil {
 			return fmt.Errorf("failed to set cpu limit: %w", err)
 		}
+	}
+
+	// Persist the enforced state so it survives reboots
+	state := &throttler.ThrottlerState{
+		ActiveProfile: overrides.Network.Profile,
+		PacketLossPct: float32(overrides.Network.PacketLoss),
+		CPULimitPct:   overrides.Compute.CPULimit,
+		ChangedBy:     "penance",
+	}
+	if err := throttler.SaveState(state); err != nil {
+		log.Printf("Penance: Warning - failed to persist throttler state: %v", err)
 	}
 
 	if overrides.Compute.OOMScoreAdj != 0 {

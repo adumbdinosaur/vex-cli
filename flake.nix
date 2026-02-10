@@ -10,27 +10,11 @@
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
 
-    # ── vex-cli Go package ──────────────────────────────────────────
-    vex-cli = pkgs.buildGoModule {
-      pname = "vex-cli";
-      version = "1.06-V";
-
-      # Source is the repo root (this flake).
-      # In production you'd point at a pinned ref; locally "self" works.
+    # Common build attributes shared by both packages
+    commonAttrs = {
+      version = "2.0-V";
       src = self;
-
-      # After the first build, nix will tell you the real hash.
-      # Run:  nix build .#vex-cli
-      # The error output will contain 'got: sha256-XXXX'. Paste that here.
-      # Alternatively: cd into repo, run `go mod vendor`, commit vendor/,
-      # and set vendorHash = null;
       vendorHash = null;
-
-      # Only build the CLI entry-point
-      subPackages = [ "cmd/vex-cli" ];
-
-      # CGo is needed for evdev / nftables C deps
-      # eBPF requires clang, llvm, and kernel headers
       env.CGO_ENABLED = 1;
 
       nativeBuildInputs = with pkgs; [ 
@@ -47,28 +31,37 @@
         linuxHeaders
       ];
 
-      # Tags for optional eBPF support
-      # Build will work without eBPF but fall back to /proc polling
-      # Disabled: eBPF implementation incomplete, use proc monitoring
-      # tags = [ "ebpf" ];
-
-      # Embed the expected binary hash at build time for self-verification
       ldflags = [
         "-s" "-w"
         "-X github.com/adumbdinosaur/vex-cli/internal/antitamper.ExpectedBinaryHash=SET_AT_RUNTIME"
       ];
-
-      meta = {
-        description = "VEX-CLI enforcement engine (Protocol 106-V)";
-        mainProgram = "vex-cli";
-      };
     };
 
+    # ── vexd: the enforcement daemon ────────────────────────────────
+    vexd = pkgs.buildGoModule (commonAttrs // {
+      pname = "vexd";
+      subPackages = [ "cmd/vexd" ];
+      meta = {
+        description = "VEX enforcement daemon (Protocol 106-V)";
+        mainProgram = "vexd";
+      };
+    });
+
+    # ── vex-cli: thin control-plane client ──────────────────────────
+    vex-cli = pkgs.buildGoModule (commonAttrs // {
+      pname = "vex-cli";
+      subPackages = [ "cmd/vex-cli" ];
+      meta = {
+        description = "VEX-CLI control plane (Protocol 106-V)";
+        mainProgram = "vex-cli";
+      };
+    });
+
   in {
-    # ── Expose the package ──────────────────────────────────────────
+    # ── Expose packages ─────────────────────────────────────────────
     packages.${system} = {
-      inherit vex-cli;
-      default = vex-cli;
+      inherit vexd vex-cli;
+      default = vexd;
     };
 
     # ── NixOS module ────────────────────────────────────────────────
@@ -79,10 +72,16 @@
       options.services.vex-cli = {
         enable = lib.mkEnableOption "VEX-CLI enforcement daemon";
 
-        package = lib.mkOption {
+        daemonPackage = lib.mkOption {
+          type = lib.types.package;
+          default = vexd;
+          description = "The vexd daemon package to use.";
+        };
+
+        cliPackage = lib.mkOption {
           type = lib.types.package;
           default = vex-cli;
-          description = "The vex-cli package to use.";
+          description = "The vex-cli control-plane package to use.";
         };
 
         configDir = lib.mkOption {
@@ -145,9 +144,9 @@
           })
         ];
 
-        # ── systemd service: vex-cli daemon ─────────────────────────
-        systemd.services.vex-cli = {
-          description = "VEX-CLI Enforcement Daemon (Protocol 106-V)";
+        # ── systemd service: vexd daemon ────────────────────────────────
+        systemd.services.vexd = {
+          description = "VEX Enforcement Daemon (Protocol 106-V)";
           wantedBy = [ "multi-user.target" ];
           after = [ "network-online.target" "systemd-resolved.service" ];
           wants = [ "network-online.target" ];
@@ -155,27 +154,21 @@
           # Ensure Nix CLI tools and coreutils are in PATH for anti-tamper checks
           path = with pkgs; [ nix coreutils systemd ];
 
-          # The binary reads config from its working directory;
-          # symlink /etc/vex-cli contents or set WorkingDirectory.
           serviceConfig = {
             Type = "simple";
-            ExecStart = "${cfg.package}/bin/vex-cli init";
+            ExecStart = "${cfg.daemonPackage}/bin/vexd";
             WorkingDirectory = "/etc/vex-cli";
             Restart = "always";
             RestartSec = 5;
             
-            # Environment variables
             Environment = [
               "VEX_MONITOR_MODE=${cfg.monitorMode}"
             ];
 
             # ── Root + capabilities ──────────────────────────────────
-            # Must run as root for cgroups, nftables, /dev/input, oom_score_adj
             User = "root";
             Group = "root";
 
-            # Grant fine-grained caps even though running as root,
-            # so we're explicit about what is required:
             AmbientCapabilities = [
               "CAP_NET_ADMIN"       # tc / nftables
               "CAP_SYS_RESOURCE"    # oom_score_adj, cgroups
@@ -187,22 +180,25 @@
             ];
 
             # ── Hardening ────────────────────────────────────────────
-            ProtectSystem = "full";       # /usr, /boot read-only
-            ProtectHome = true;           # hide /home from daemon
+            ProtectSystem = "full";
+            ProtectHome = true;
             NoNewPrivileges = true;
             LockPersonality = true;
             ProtectClock = true;
             ProtectKernelModules = true;
             RestrictRealtime = true;
 
-            # Read-write paths the daemon actually needs
             ReadWritePaths = [
               "/var/log"                # logging
+              "/var/lib/vex-cli"        # persisted system state
+              "/run/vex-cli"            # Unix domain socket
               "/sys/fs/cgroup"          # CPU governance
               "/etc/vex-cli"            # compliance-status.json updates
             ];
 
-            # Access to input devices for evdev surveillance
+            RuntimeDirectory = "vex-cli";        # creates /run/vex-cli
+            StateDirectory = "vex-cli";           # creates /var/lib/vex-cli
+
             SupplementaryGroups = [ "input" ];
             DeviceAllow = [ "/dev/input/* rw" ];
           };
@@ -215,7 +211,7 @@
           description = "VEX-CLI Integrity Check";
           serviceConfig = {
             Type = "oneshot";
-            ExecStart = "${cfg.package}/bin/vex-cli check";
+            ExecStart = "${cfg.cliPackage}/bin/vex-cli check";
             WorkingDirectory = "/etc/vex-cli";
             User = "root";
           };
@@ -236,8 +232,8 @@
           "f /var/log/vex-cli.log 0644 root root - -"
         ];
 
-        # Make vex-cli available system-wide for manual commands
-        environment.systemPackages = [ cfg.package ];
+        # Make both binaries available system-wide
+        environment.systemPackages = [ cfg.daemonPackage cfg.cliPackage ];
       };
     };
 

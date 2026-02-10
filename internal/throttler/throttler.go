@@ -1,12 +1,14 @@
 package throttler
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/vishvananda/netlink"
 )
@@ -33,6 +35,7 @@ type NetlinkOps interface {
 
 type FileOps interface {
 	WriteFile(filename string, data []byte, perm os.FileMode) error
+	ReadFile(filename string) ([]byte, error)
 	Stat(name string) (os.FileInfo, error)
 }
 
@@ -64,6 +67,9 @@ type RealFileOps struct{}
 func (r *RealFileOps) WriteFile(filename string, data []byte, perm os.FileMode) error {
 	return os.WriteFile(filename, data, perm)
 }
+func (r *RealFileOps) ReadFile(filename string) ([]byte, error) {
+	return os.ReadFile(filename)
+}
 func (r *RealFileOps) Stat(name string) (os.FileInfo, error) {
 	return os.Stat(name)
 }
@@ -82,15 +88,29 @@ var (
 func Init() error {
 	log.Println("Initializing Throttler Subsystem...")
 
-	// Auto-detect interface if possible, or default to generic
+	// Allow explicit override via environment
+	if envIface := os.Getenv("VEX_INTERFACE"); envIface != "" {
+		currentConfig.Interface = envIface
+		log.Printf("Throttler attached to interface: %s (from VEX_INTERFACE)", envIface)
+		return nil
+	}
+
+	// Auto-detect interface from the default route
 	iface, err := getDefaultInterface()
 	if err != nil {
-		log.Printf("Could not detect default interface, defaulting to 'eth0': %v", err)
-		currentConfig.Interface = "eth0"
-	} else {
-		currentConfig.Interface = iface
-		log.Printf("Throttler attached to interface: %s", iface)
+		// Try common physical interface names before giving up
+		for _, candidate := range []string{"enp9s0", "enp0s31f6", "eth0", "eno1"} {
+			if _, lerr := nlOps.LinkByName(candidate); lerr == nil {
+				currentConfig.Interface = candidate
+				log.Printf("Throttler attached to interface: %s (fallback probe)", candidate)
+				return nil
+			}
+		}
+		log.Printf("Could not detect default interface: %v (set VEX_INTERFACE to override)", err)
+		return fmt.Errorf("no usable network interface found")
 	}
+	currentConfig.Interface = iface
+	log.Printf("Throttler attached to interface: %s", iface)
 
 	return nil
 }
@@ -280,6 +300,90 @@ func getDefaultInterface() (string, error) {
 // ---------------------------------------------------------------------
 // CPU Governance (Cgroup v2)
 // ---------------------------------------------------------------------
+
+// ---------------------------------------------------------------------
+// State Persistence
+// ---------------------------------------------------------------------
+
+const stateFilePath = "/var/lib/vex-cli/throttler-state.json"
+
+// ThrottlerState is the persisted state written to disk so that the active
+// profile survives reboots.
+type ThrottlerState struct {
+	ActiveProfile  string  `json:"active_profile"`
+	PacketLossPct  float32 `json:"packet_loss_pct"`
+	CPULimitPct    int     `json:"cpu_limit_pct"`
+	LastChanged    string  `json:"last_changed"`
+	ChangedBy      string  `json:"changed_by"` // "cli", "penance", "unlock"
+}
+
+// SaveState persists the current throttler state to disk.
+func SaveState(state *ThrottlerState) error {
+	state.LastChanged = time.Now().UTC().Format(time.RFC3339)
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal throttler state: %w", err)
+	}
+	// Ensure directory exists
+	dir := filepath.Dir(stateFilePath)
+	if _, err := fsOps.Stat(dir); os.IsNotExist(err) {
+		if mkErr := os.MkdirAll(dir, 0755); mkErr != nil {
+			return fmt.Errorf("failed to create state directory %s: %w", dir, mkErr)
+		}
+	}
+	if err := fsOps.WriteFile(stateFilePath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write throttler state: %w", err)
+	}
+	log.Printf("Throttler state persisted: profile=%s, loss=%.2f%%, cpu=%d%%, by=%s",
+		state.ActiveProfile, state.PacketLossPct, state.CPULimitPct, state.ChangedBy)
+	return nil
+}
+
+// LoadState reads the persisted throttler state from disk.
+// Returns nil (no error) if the file does not exist.
+func LoadState() (*ThrottlerState, error) {
+	data, err := fsOps.ReadFile(stateFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to read throttler state: %w", err)
+	}
+	var state ThrottlerState
+	if err := json.Unmarshal(data, &state); err != nil {
+		return nil, fmt.Errorf("failed to parse throttler state: %w", err)
+	}
+	return &state, nil
+}
+
+// ---------------------------------------------------------------------
+// Profile Validation & Aliases
+// ---------------------------------------------------------------------
+
+// profileAliases maps common alternative names to canonical profile values.
+var profileAliases = map[string]Profile{
+	"standard":   ProfileStandard,
+	"uncapped":   ProfileStandard,
+	"choke":      ProfileChoke,
+	"throttle":   ProfileChoke,
+	"dial-up":    ProfileDialUp,
+	"dialup":     ProfileDialUp,
+	"56k":        ProfileDialUp,
+	"black-hole": ProfileBlackHole,
+	"blackhole":  ProfileBlackHole,
+	"blackout":   ProfileBlackHole,
+	"drop":       ProfileBlackHole,
+}
+
+// ResolveProfile normalises a user-supplied profile string to a canonical Profile.
+// Returns an error if the input doesn't match any known profile or alias.
+func ResolveProfile(input string) (Profile, error) {
+	norm := strings.ToLower(strings.TrimSpace(input))
+	if p, ok := profileAliases[norm]; ok {
+		return p, nil
+	}
+	return "", fmt.Errorf("unknown profile %q — valid profiles: standard, choke, dial-up, black-hole (aliases: blackout, dialup, 56k, uncapped)", input)
+}
 
 const cgroupMount = "/sys/fs/cgroup"
 

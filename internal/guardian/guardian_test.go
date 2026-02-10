@@ -69,11 +69,19 @@ func (m *MockSystemOps) Kill(pid int, sig syscall.Signal) error {
 
 type MockFirewallOps struct {
 	SetupFunc func(blockedDomains []string) error
+	ClearFunc func() error
 }
 
 func (m *MockFirewallOps) Setup(blockedDomains []string) error {
 	if m.SetupFunc != nil {
 		return m.SetupFunc(blockedDomains)
+	}
+	return nil
+}
+
+func (m *MockFirewallOps) Clear() error {
+	if m.ClearFunc != nil {
+		return m.ClearFunc()
 	}
 	return nil
 }

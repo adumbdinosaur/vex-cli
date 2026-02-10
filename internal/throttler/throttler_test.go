@@ -59,6 +59,7 @@ func (m *MockNetlinkOps) LinkByIndex(index int) (netlink.Link, error) {
 
 type MockFileOps struct {
 	WriteFileFunc func(filename string, data []byte, perm os.FileMode) error
+	ReadFileFunc  func(filename string) ([]byte, error)
 	StatFunc      func(name string) (os.FileInfo, error)
 	WrittenFiles  map[string]string
 }
@@ -72,6 +73,12 @@ func (m *MockFileOps) WriteFile(filename string, data []byte, perm os.FileMode) 
 		return m.WriteFileFunc(filename, data, perm)
 	}
 	return nil
+}
+func (m *MockFileOps) ReadFile(filename string) ([]byte, error) {
+	if m.ReadFileFunc != nil {
+		return m.ReadFileFunc(filename)
+	}
+	return nil, os.ErrNotExist
 }
 func (m *MockFileOps) Stat(name string) (os.FileInfo, error) {
 	if m.StatFunc != nil {

@@ -33,6 +33,7 @@ type SystemOps interface {
 
 type FirewallOps interface {
 	Setup(blockedDomains []string) error
+	Clear() error
 }
 
 // -- Real Implementations --
@@ -91,7 +92,23 @@ func (r *RealFirewallOps) Setup(blockedDomains []string) error {
 	}
 
 	log.Printf("Guardian: NFTables 'vex-guardian' initialized with %d SNI block rules.", len(blockedDomains))
-	return ebpfMon.Close()
+	return nil
+}
+
+func (r *RealFirewallOps) Clear() error {
+	conn, err := nftables.New()
+	if err != nil {
+		return fmt.Errorf("failed to open nftables connection: %w", err)
+	}
+	// Delete the entire vex-guardian table (all chains and rules go with it)
+	conn.DelTable(&nftables.Table{Name: "vex-guardian", Family: nftables.TableFamilyIPv4})
+	if err := conn.Flush(); err != nil {
+		// Table might not exist — that's fine
+		log.Printf("Guardian: nftables cleanup (may be harmless): %v", err)
+		return nil
+	}
+	log.Println("Guardian: NFTables 'vex-guardian' table removed.")
+	return nil
 }
 
 // buildSNIBlockExprs creates nftables expressions that match TCP port 443
@@ -148,7 +165,7 @@ var (
 )
 
 // Init initializes the guardian subsystem
-func Init() error {
+func Init(penaltyActive bool) error {
 	log.Println("Initializing Guardian Subsystem...")
 
 	if err := SetOOMScore(-1000); err != nil {
@@ -185,9 +202,13 @@ func Init() error {
 		go startReaper()
 	}
 
-	blockedDomains := loadBlockedDomains()
-	if err := fwOps.Setup(blockedDomains); err != nil {
-		log.Printf("Guardian: Firewall initialization failed: %v", err)
+	if penaltyActive {
+		blockedDomains := loadBlockedDomains()
+		if err := fwOps.Setup(blockedDomains); err != nil {
+			log.Printf("Guardian: Firewall initialization failed: %v", err)
+		}
+	} else {
+		log.Println("Guardian: No active penalty — skipping domain block rules")
 	}
 	return nil
 }
@@ -216,13 +237,28 @@ func GetMonitorStatus() string {
 	return "/proc polling (standard)"
 }
 
-// Shutdown performs cleanup of guardian resources.
+// Shutdown performs cleanup of guardian resources: eBPF monitor and nftables rules.
 func Shutdown() error {
+	var errs []string
 	if ebpfMon != nil {
 		log.Println("Guardian: Shutting down eBPF monitor...")
-		return ebpfMon.Close()
+		if err := ebpfMon.Close(); err != nil {
+			errs = append(errs, fmt.Sprintf("ebpf close: %v", err))
+		}
+	}
+	// Always attempt to remove the nftables table so rules don't persist.
+	if err := fwOps.Clear(); err != nil {
+		errs = append(errs, fmt.Sprintf("firewall clear: %v", err))
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("shutdown errors: %s", strings.Join(errs, "; "))
 	}
 	return nil
+}
+
+// ClearFirewall removes the vex-guardian nftables table (idempotent).
+func ClearFirewall() error {
+	return fwOps.Clear()
 }
 
 // SNI block list default domains
