@@ -49,7 +49,8 @@
 
       # Tags for optional eBPF support
       # Build will work without eBPF but fall back to /proc polling
-      tags = [ "ebpf" ];
+      # Disabled: eBPF implementation incomplete, use proc monitoring
+      # tags = [ "ebpf" ];
 
       # Embed the expected binary hash at build time for self-verification
       ldflags = [
