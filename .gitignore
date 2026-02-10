@@ -8,3 +8,4 @@ result
 bar/
 vex-status.sh
 bin/
+*.workspace

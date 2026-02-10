@@ -562,16 +562,34 @@ func handleLinesSubmit(s *state.SystemState, req *ipc.Request) *ipc.Response {
 	s.ChangedBy = "cli"
 	remaining := s.Writing.Required - s.Writing.Completed
 
+	// Mark the compliance task as in-progress on first accepted line
+	if err := penance.MarkInProgress(); err != nil {
+		log.Printf("LinesSubmit: failed to mark in-progress: %v", err)
+	}
+
 	if remaining <= 0 {
 		// Task complete!
 		vexlog.LogEvent("WRITING", "TASK_COMPLETED",
 			fmt.Sprintf("phrase=%q required=%d", s.Writing.Phrase, s.Writing.Required))
 		s.Writing = state.WritingTask{}
+
+		// Update compliance status to completed
+		if err := penance.RecordCompletion(); err != nil {
+			log.Printf("LinesSubmit: failed to record completion: %v", err)
+		}
+		s.Compliance.Locked = false
+		s.Compliance.TaskStatus = "completed"
+
 		return &ipc.Response{
 			OK:      true,
 			Message: "Writing task COMPLETE. Well done.",
 			State:   s,
 		}
+	}
+
+	// Sync compliance snapshot so status reflects in-progress
+	if cs, err := penance.LoadComplianceStatus(); err == nil {
+		s.Compliance.TaskStatus = cs.TaskStatus
 	}
 
 	return &ipc.Response{

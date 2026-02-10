@@ -217,6 +217,9 @@ func cmdStatus() {
 	fmt.Printf("  System Locked:  %v\n", s.Compliance.Locked)
 	fmt.Printf("  Failure Score:  %d\n", s.Compliance.FailureScore)
 	fmt.Printf("  Task Status:    %s\n", s.Compliance.TaskStatus)
+	if s.Writing.Active {
+		fmt.Printf("  Lines Done:     %d / %d\n", s.Writing.Completed, s.Writing.Required)
+	}
 
 	fmt.Println()
 	fmt.Println("[NETWORK]")
@@ -292,7 +295,7 @@ func cmdPenance() {
 		log.Printf("Surveillance initialization warning: %v", err)
 	}
 
-	m, err := penance.LoadManifest("penance-manifest.json")
+	m, err := penance.LoadManifest(penance.ManifestFile)
 	if err != nil {
 		log.Fatalf("Failed to load penance manifest: %v", err)
 	}
@@ -329,6 +332,7 @@ func cmdPenance() {
 			continue
 		}
 		sb.WriteString(line + "\n")
+		_ = penance.MarkInProgress()
 	}
 	if err := scanner.Err(); err != nil {
 		log.Printf("Error reading input: %v", err)

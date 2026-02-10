@@ -6,7 +6,8 @@ import (
 )
 
 type MockFileSystem struct {
-	ReadFileFunc func(name string) ([]byte, error)
+	ReadFileFunc  func(name string) ([]byte, error)
+	WriteFileFunc func(name string, data []byte, perm os.FileMode) error
 }
 
 func (m *MockFileSystem) ReadFile(name string) ([]byte, error) {
@@ -15,7 +16,12 @@ func (m *MockFileSystem) ReadFile(name string) ([]byte, error) {
 	}
 	return nil, os.ErrNotExist
 }
-func (m *MockFileSystem) WriteFile(name string, data []byte, perm os.FileMode) error { return nil }
+func (m *MockFileSystem) WriteFile(name string, data []byte, perm os.FileMode) error {
+	if m.WriteFileFunc != nil {
+		return m.WriteFileFunc(name, data, perm)
+	}
+	return nil
+}
 
 func TestLoadManifest(t *testing.T) {
 	jsonContent := `{
@@ -29,7 +35,7 @@ func TestLoadManifest(t *testing.T) {
 
 	mockFS := &MockFileSystem{
 		ReadFileFunc: func(name string) ([]byte, error) {
-			if name == "penance-manifest.json" {
+			if name == ManifestFile {
 				return []byte(jsonContent), nil
 			}
 			return nil, os.ErrNotExist
@@ -37,7 +43,7 @@ func TestLoadManifest(t *testing.T) {
 	}
 	fsOps = mockFS
 
-	m, err := LoadManifest("penance-manifest.json")
+	m, err := LoadManifest(ManifestFile)
 	if err != nil {
 		t.Fatalf("LoadManifest failed: %v", err)
 	}
@@ -50,5 +56,111 @@ func TestLoadManifest(t *testing.T) {
 	}
 	if m.Active.Constraints.AllowBackspace != false {
 		t.Error("Expected allow_backspace to be false")
+	}
+}
+
+func TestMarkInProgress(t *testing.T) {
+	// Set up a mock filesystem that returns a "pending" compliance status
+	statusJSON := `{"failure_score":0,"active_task":"TEST-TASK","task_status":"pending","locked":true}`
+	var savedData []byte
+
+	mockFS := &MockFileSystem{
+		ReadFileFunc: func(name string) ([]byte, error) {
+			if savedData != nil {
+				return savedData, nil
+			}
+			return []byte(statusJSON), nil
+		},
+	}
+	mockFS.WriteFileFunc = func(name string, data []byte, perm os.FileMode) error {
+		savedData = data
+		return nil
+	}
+	fsOps = mockFS
+
+	// First call should transition from "pending" to "in_progress"
+	if err := MarkInProgress(); err != nil {
+		t.Fatalf("MarkInProgress failed: %v", err)
+	}
+
+	cs, err := LoadComplianceStatus()
+	if err != nil {
+		t.Fatalf("LoadComplianceStatus failed: %v", err)
+	}
+	if cs.TaskStatus != "in_progress" {
+		t.Errorf("Expected task_status 'in_progress', got '%s'", cs.TaskStatus)
+	}
+
+	// Second call should be a no-op (already in_progress)
+	if err := MarkInProgress(); err != nil {
+		t.Fatalf("MarkInProgress (second call) failed: %v", err)
+	}
+	cs, err = LoadComplianceStatus()
+	if err != nil {
+		t.Fatalf("LoadComplianceStatus failed: %v", err)
+	}
+	if cs.TaskStatus != "in_progress" {
+		t.Errorf("Expected task_status to remain 'in_progress', got '%s'", cs.TaskStatus)
+	}
+}
+
+func TestTaskLifecycle_PendingToInProgressToCompleted(t *testing.T) {
+	statusJSON := `{"failure_score":0,"active_task":"LINES-TASK","task_status":"pending","locked":true,"total_completed":0}`
+	var savedData []byte
+
+	mockFS := &MockFileSystem{
+		ReadFileFunc: func(name string) ([]byte, error) {
+			if savedData != nil {
+				return savedData, nil
+			}
+			return []byte(statusJSON), nil
+		},
+	}
+	mockFS.WriteFileFunc = func(name string, data []byte, perm os.FileMode) error {
+		savedData = data
+		return nil
+	}
+	fsOps = mockFS
+
+	// 1. Start as pending
+	cs, err := LoadComplianceStatus()
+	if err != nil {
+		t.Fatalf("LoadComplianceStatus failed: %v", err)
+	}
+	if cs.TaskStatus != "pending" {
+		t.Fatalf("Expected initial task_status 'pending', got '%s'", cs.TaskStatus)
+	}
+
+	// 2. First line accepted → transitions to in_progress
+	if err := MarkInProgress(); err != nil {
+		t.Fatalf("MarkInProgress failed: %v", err)
+	}
+	cs, err = LoadComplianceStatus()
+	if err != nil {
+		t.Fatalf("LoadComplianceStatus failed: %v", err)
+	}
+	if cs.TaskStatus != "in_progress" {
+		t.Errorf("Expected task_status 'in_progress', got '%s'", cs.TaskStatus)
+	}
+	if !cs.Locked {
+		t.Error("Expected system to remain locked during in_progress")
+	}
+
+	// 3. Task completed → transitions to completed, unlocked
+	if err := RecordCompletion(); err != nil {
+		t.Fatalf("RecordCompletion failed: %v", err)
+	}
+	cs, err = LoadComplianceStatus()
+	if err != nil {
+		t.Fatalf("LoadComplianceStatus failed: %v", err)
+	}
+	if cs.TaskStatus != "completed" {
+		t.Errorf("Expected task_status 'completed', got '%s'", cs.TaskStatus)
+	}
+	if cs.Locked {
+		t.Error("Expected system to be unlocked after completion")
+	}
+	if cs.TotalCompleted != 1 {
+		t.Errorf("Expected total_completed 1, got %d", cs.TotalCompleted)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -91,6 +92,13 @@ type EscalationLevel struct {
 	Latency  int      `json:"latency"`
 }
 
+// -- Constants --
+
+const (
+	ConfigDir    = "/etc/vex-cli"
+	ManifestFile = ConfigDir + "/penance-manifest.json"
+)
+
 // -- Global State --
 
 var CurrentManifest *Manifest
@@ -100,7 +108,7 @@ var CurrentManifest *Manifest
 func Init() error {
 	log.Println("Initializing Penance Subsystem...")
 
-	m, err := LoadManifest("penance-manifest.json")
+	m, err := LoadManifest(ManifestFile)
 	if err != nil {
 		return fmt.Errorf("failed to load manifest: %w", err)
 	}
@@ -139,9 +147,47 @@ func IsPenaltyActive() bool {
 	return cs.Locked
 }
 
+// DefaultManifest returns a baseline manifest with no filtering, standard
+// network profile, full CPU, and zero input latency.
+func DefaultManifest() *Manifest {
+	return &Manifest{
+		Version: "1.0-DEFAULT",
+		Meta: ManifestMeta{
+			TargetID:      "unset",
+			LastUpdated:   time.Now().UTC().Format(time.RFC3339),
+			Authorization: "none",
+		},
+		Overrides: SystemStateOverrides{
+			Network: NetworkState{
+				Profile:      "standard",
+				PacketLoss:   0,
+				DNSFiltering: "none",
+			},
+			Compute: ComputeState{
+				CPULimit:     100,
+				OOMScoreAdj:  0,
+				InputLatency: 0,
+			},
+		},
+		Escalation: EscalationMatrix{
+			Thresholds: map[string]EscalationLevel{
+				"0": {TaskPool: []string{"config_audit"}, Latency: 0},
+			},
+		},
+	}
+}
+
 func LoadManifest(filename string) (*Manifest, error) {
 	data, err := fsOps.ReadFile(filename)
 	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("Penance: Manifest not found at %s — generating default", filename)
+			m := DefaultManifest()
+			if writeErr := saveManifest(filename, m); writeErr != nil {
+				log.Printf("Penance: Warning — could not persist default manifest: %v", writeErr)
+			}
+			return m, nil
+		}
 		return nil, err
 	}
 
@@ -150,6 +196,22 @@ func LoadManifest(filename string) (*Manifest, error) {
 		return nil, err
 	}
 	return &m, nil
+}
+
+// saveManifest writes a manifest to disk as indented JSON.
+func saveManifest(filename string, m *Manifest) error {
+	data, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return err
+	}
+	// Ensure the config directory exists
+	dir := filepath.Dir(filename)
+	if dir != "" && dir != "." {
+		if mkErr := os.MkdirAll(dir, 0755); mkErr != nil {
+			return mkErr
+		}
+	}
+	return fsOps.WriteFile(filename, data, 0644)
 }
 
 // EnforceState applies the system state overrides defined in the manifest.
@@ -205,7 +267,7 @@ func (m *Manifest) EnforceState() error {
 
 // -- Compliance Status Tracking --
 
-const complianceStatusFile = "compliance-status.json"
+var complianceStatusFile = ConfigDir + "/compliance-status.json"
 
 // ComplianceStatus tracks the subject's compliance state and failure score
 type ComplianceStatus struct {
@@ -266,6 +328,22 @@ func RecordFailure(reason string) error {
 
 	log.Printf("Penance: FAILURE recorded (%s). Score: %d", reason, cs.FailureScore)
 	return SaveComplianceStatus(cs)
+}
+
+// MarkInProgress transitions the task status from "pending" to "in_progress".
+// This should be called when the first valid line of input is accepted.
+func MarkInProgress() error {
+	cs, err := LoadComplianceStatus()
+	if err != nil {
+		return fmt.Errorf("failed to load compliance status: %w", err)
+	}
+
+	if cs.TaskStatus == "pending" {
+		cs.TaskStatus = "in_progress"
+		log.Println("Penance: Task status updated to in_progress")
+		return SaveComplianceStatus(cs)
+	}
+	return nil
 }
 
 // RecordCompletion marks the current task as completed
