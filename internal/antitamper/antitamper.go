@@ -99,6 +99,17 @@ func RunAllChecks() error {
 // verifyNixConfig checks the NixOS system configuration against the Nix store
 // to detect manual overrides or unauthorized changes.
 func verifyNixConfig() error {
+	// 0. Check if running as a service first — if the unit file doesn't exist,
+	//    skip all integrity checks (e.g. running outside systemd, in development,
+	//    or inside a container).
+	unitOutput, unitErr := cmdRunner.Run("systemctl", "cat", "vex-cli.service")
+	if unitErr != nil {
+		// Unit file not found — not a systemd-managed install; skip all checks.
+		log.Printf("Anti-Tamper: vex-cli.service unit not found, skipping all Nix integrity checks")
+		return nil
+	}
+	_ = unitOutput // unit exists
+
 	// 1. Nix store integrity — only flag actual corruption, not warnings.
 	output, err := cmdRunner.Run("nix-store", "--verify", "--check-contents")
 	if err != nil {
@@ -116,18 +127,7 @@ func verifyNixConfig() error {
 		log.Printf("Anti-Tamper: Could not verify NixOS state version: %v (non-critical)", err)
 	}
 
-	// 3. Service check — only treat as tamper if the unit file exists but
-	//    the service is not running.  If the unit is missing entirely
-	//    (e.g. running outside systemd, in development, or inside a
-	//    container), this is not evidence of tampering.
-	unitOutput, unitErr := cmdRunner.Run("systemctl", "cat", "vex-cli.service")
-	if unitErr != nil {
-		// Unit file not found — not a systemd-managed install; skip.
-		log.Printf("Anti-Tamper: vex-cli.service unit not found, skipping service check")
-		return nil
-	}
-	_ = unitOutput // unit exists
-
+	// 3. Service check — verify the service is actually running.
 	statusOutput, statusErr := cmdRunner.Run("systemctl", "is-active", "vex-cli.service")
 	statusStr := strings.TrimSpace(string(statusOutput))
 	if statusErr != nil || statusStr != "active" {
