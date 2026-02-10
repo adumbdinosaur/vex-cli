@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/user"
 	"strconv"
 
 	vexlog "github.com/adumbdinosaur/vex-cli/internal/logging"
@@ -39,9 +40,14 @@ func NewServer(sysState *state.SystemState) (*Server, error) {
 		return nil, fmt.Errorf("failed to listen on %s: %w", state.SocketPath, err)
 	}
 
-	// Let non-root users connect (they still need to be root to run
-	// vex-cli, but this avoids permission issues during testing).
+	// Set permissions to allow vex group members to connect
 	os.Chmod(state.SocketPath, 0660)
+	
+	// Try to set group ownership to 'vex' group if it exists
+	if err := setSocketGroup(state.SocketPath, "vex"); err != nil {
+		log.Printf("Warning: Could not set socket group to 'vex': %v", err)
+		log.Printf("Non-root users will need to be in the root group or run as root")
+	}
 
 	return &Server{
 		listener: ln,
@@ -134,3 +140,26 @@ func ParseIntArg(args map[string]string, key string) (int, error) {
 	}
 	return n, nil
 }
+
+// setSocketGroup attempts to change the group ownership of the socket file
+// to the specified group name. Returns error if the group doesn't exist or
+// the operation fails.
+func setSocketGroup(socketPath, groupName string) error {
+	grp, err := user.LookupGroup(groupName)
+	if err != nil {
+		return fmt.Errorf("group '%s' not found: %w", groupName, err)
+	}
+
+	gid, err := strconv.Atoi(grp.Gid)
+	if err != nil {
+		return fmt.Errorf("invalid group ID: %w", err)
+	}
+
+	// Change group ownership (keep owner as root, uid -1 means no change)
+	if err := os.Chown(socketPath, -1, gid); err != nil {
+		return fmt.Errorf("failed to chown socket: %w", err)
+	}
+
+	return nil
+}
+

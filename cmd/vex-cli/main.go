@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/user"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,8 +31,9 @@ func main() {
 	}
 	defer vexlog.Close()
 
-	if os.Geteuid() != 0 {
-		log.Fatal("Error: vex-cli must be run as root.")
+	// Allow non-root users in the 'vex' group or root user
+	if !canAccessVex() {
+		log.Fatal("Error: vex-cli requires root privileges or membership in the 'vex' group.")
 	}
 
 	if err := security.Init(); err != nil {
@@ -502,3 +505,40 @@ func cmdLinesSubmitInteractive() {
 
 	fmt.Printf("\nSession: %d accepted, %d rejected\n", accepted, rejected)
 }
+
+// canAccessVex checks if the current user has permission to run vex-cli.
+// Returns true if the user is root OR is a member of the 'vex' group.
+func canAccessVex() bool {
+	// Root always has access
+	if os.Geteuid() == 0 {
+		return true
+	}
+
+	// Check if user is in the 'vex' group
+	groups, err := os.Getgroups()
+	if err != nil {
+		return false
+	}
+
+	// Look up the 'vex' group GID
+	vexGroup, err := user.LookupGroup("vex")
+	if err != nil {
+		// Group doesn't exist, only root can access
+		return false
+	}
+
+	vexGid, err := strconv.Atoi(vexGroup.Gid)
+	if err != nil {
+		return false
+	}
+
+	// Check if any of the user's groups match 'vex'
+	for _, gid := range groups {
+		if gid == vexGid {
+			return true
+		}
+	}
+
+	return false
+}
+
