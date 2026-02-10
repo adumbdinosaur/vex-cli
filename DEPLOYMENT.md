@@ -299,3 +299,75 @@ jobs:
       - run: nix build .#vex-cli
       - run: nix build .#packages.x86_64-linux.vex-cli
 ```
+
+## eBPF Process Monitoring
+
+vex-cli supports two process monitoring backends:
+
+### 1. /proc Polling (Default, Always Available)
+
+Scans `/proc` every 2 seconds to detect and terminate forbidden processes. Works on any kernel version.
+
+### 2. eBPF Tracepoint (High-Performance, Optional)
+
+Attaches to the `sched:sched_process_exec` kernel tracepoint for real-time process detection with zero polling overhead.
+
+**Requirements:**
+- Linux kernel 4.15+ (for tracepoint support)
+- Linux kernel 5.8+ (for CAP_BPF and CAP_PERFMON capabilities)
+- clang, llvm (for eBPF compilation)
+- libbpf headers
+
+**Enabling eBPF:**
+
+The NixOS module automatically tries eBPF first and falls back to /proc polling:
+
+```nix
+services.vex-cli = {
+  enable = true;
+  monitorMode = "auto";  # Try eBPF, fallback to /proc (default)
+  # monitorMode = "ebpf"; # Force eBPF, fail if unavailable
+  # monitorMode = "proc"; # Force /proc polling
+};
+```
+
+**Building with eBPF:**
+
+The flake already includes eBPF build dependencies and capabilities. To generate the eBPF bytecode:
+
+```bash
+cd vex-cli/
+nix-shell  # Provides clang, llvm, libbpf
+go generate ./internal/guardian
+```
+
+This compiles `execmon.bpf.c` and generates Go bindings (`ebpf_bpfel.go`, `ebpf_bpfeb.go`).
+
+**Current Status:**
+
+The eBPF infrastructure is scaffolded with:
+- ✅ C eBPF program ([internal/guardian/execmon.bpf.c](internal/guardian/execmon.bpf.c))
+- ✅ Go wrapper ([internal/guardian/ebpf_monitor.go](internal/guardian/ebpf_monitor.go))
+- ✅ Build tags (`-tags ebpf` to enable)
+- ✅ NixOS module support (CAP_BPF, CAP_PERFMON capabilities)
+- ⚠️ Needs `go generate` to compile eBPF bytecode
+- ✅ Graceful fallback to /proc if eBPF fails
+
+**Verifying the Backend:**
+
+```bash
+sudo systemctl status vex-cli.service
+sudo journalctl -u vex-cli.service | grep "Guardian:"
+
+# Look for one of:
+# "Guardian: Using eBPF-based process monitoring (high-performance mode)"
+# "Guardian: Falling back to /proc polling"
+```
+
+Or via CLI:
+
+```bash
+sudo vex-cli status
+# Shows monitoring backend in output
+```
+

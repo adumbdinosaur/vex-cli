@@ -3,9 +3,10 @@
 // This eBPF program monitors process execution events by attaching to
 // the sched:sched_process_exec tracepoint.
 //
-// Compile with: go generate ./internal/guardian
+// To generate Go bindings, run from the repository root:
+//   go generate ./internal/guardian
 //
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -type exec_event ebpf execmon.bpf.c -- -I/usr/include
+// This will create ebpf_bpfel.go and ebpf_bpfeb.go (little/big endian)
 
 #include <linux/bpf.h>
 #include <linux/types.h>

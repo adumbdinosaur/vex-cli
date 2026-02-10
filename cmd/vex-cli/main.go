@@ -177,6 +177,11 @@ func cmdStatus() {
 	fmt.Printf("  KPM:        %.2f\n", kpm)
 	fmt.Printf("  Lines:      %d\n", lines)
 
+	// Guardian Status
+	fmt.Println()
+	fmt.Println("[GUARDIAN]")
+	fmt.Printf("  Process Monitor: %s\n", guardian.GetMonitorStatus())
+
 	elapsed := time.Since(start)
 	fmt.Println()
 	fmt.Printf("Status check completed in %v\n", elapsed)

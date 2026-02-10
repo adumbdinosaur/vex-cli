@@ -144,7 +144,7 @@ var (
 	
 	// Global eBPF monitor instance
 	ebpfMon *EBPFMonitor
-	useEBPF bool = false // Default to eBPF if available, fallback to /proc
+	useEBPF bool = true // Default to trying eBPF, fallback to /proc on error
 )
 
 // Init initializes the guardian subsystem
@@ -157,6 +157,11 @@ func Init() error {
 		log.Println("Guardian: OOM Shield Engaged (-1000)")
 	}
 
+	// Check VEX_MONITOR_MODE environment variable
+	if mode := os.Getenv("VEX_MONITOR_MODE"); mode != "" {
+		SetMonitorMode(mode)
+	}
+
 	// Initialize process monitoring: try eBPF first, fallback to /proc polling
 	if useEBPF {
 		mon, err := NewEBPFMonitor()
@@ -165,10 +170,11 @@ func Init() error {
 			log.Println("Guardian: Falling back to /proc polling")
 			go startReaper()
 		} else {
-			 
-			if err := error(nil); err != nil {
+			ebpfMon = mon
+			if err := ebpfMon.Start(); err != nil {
 				log.Printf("Guardian: Failed to start eBPF monitor: %v", err)
 				log.Println("Guardian: Falling back to /proc polling")
+				ebpfMon.Close()
 				ebpfMon = nil
 				go startReaper()
 			} else {
@@ -183,19 +189,22 @@ func Init() error {
 	if err := fwOps.Setup(blockedDomains); err != nil {
 		log.Printf("Guardian: Firewall initialization failed: %v", err)
 	}
-	return ebpfMon.Close()
+	return nil
 }
 
 // SetMonitorMode configures the process monitoring backend.
-// mode: "ebpf" or "proc"
+// mode: "ebpf", "proc", or "auto"
 func SetMonitorMode(mode string) {
 	switch mode {
 	case "ebpf":
 		useEBPF = true
 	case "proc":
 		useEBPF = false
+	case "auto":
+		useEBPF = true // Try eBPF, fallback to /proc on error
 	default:
-		log.Printf("Guardian: Invalid monitor mode '%s', using default (ebpf)", mode)
+		log.Printf("Guardian: Invalid monitor mode '%s', using auto", mode)
+		useEBPF = true
 	}
 }
 
@@ -213,7 +222,7 @@ func Shutdown() error {
 		log.Println("Guardian: Shutting down eBPF monitor...")
 		return ebpfMon.Close()
 	}
-	return ebpfMon.Close()
+	return nil
 }
 
 // SNI block list default domains
