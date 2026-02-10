@@ -156,19 +156,18 @@ func ApplyNetworkProfile(profile Profile) error {
 		}
 	case ProfileDialUp:
 		// 56kbps = 7,000 bytes/sec
-		qdisc = &netlink.Tbf{
+		// Use netem for very low rates (TBF has buffer calculation issues at <100kbps)
+		qdisc = &netlink.Netem{
 			QdiscAttrs: attrs,
-			Rate:       7000,
-			Limit:      10000,
-			Buffer:     5000,
+			Rate64:     7000, // bytes per second
+			Limit:      1000, // packet queue limit
 		}
 	case ProfileBlackHole:
 		// 1kbps = 125 bytes/sec (Allows minimal C2 heartbeat)
-		qdisc = &netlink.Tbf{
+		qdisc = &netlink.Netem{
 			QdiscAttrs: attrs,
-			Rate:       125,
-			Limit:      1250,
-			Buffer:     1250,
+			Rate64:     125,
+			Limit:      100,
 		}
 	default:
 		return fmt.Errorf("unknown profile: %s", profile)
@@ -222,16 +221,16 @@ func ApplyNetworkProfileWithEntropy(profile Profile, lossPercentage float32) err
 		return fmt.Errorf("unknown profile: %s", profile)
 	}
 
-	// If only rate limiting, no packet loss, use TBF for precision
+	// If only rate limiting, no packet loss, use TBF for high rates, netem for low rates
 	if lossPercentage <= 0 && rateBytes > 0 {
 		var qdisc netlink.Qdisc
 		switch profile {
 		case ProfileChoke:
 			qdisc = &netlink.Tbf{QdiscAttrs: attrs, Rate: rateBytes, Limit: 1000000, Buffer: 100000}
 		case ProfileDialUp:
-			qdisc = &netlink.Tbf{QdiscAttrs: attrs, Rate: rateBytes, Limit: 10000, Buffer: 5000}
+			qdisc = &netlink.Netem{QdiscAttrs: attrs, Rate64: rateBytes, Limit: 1000}
 		case ProfileBlackHole:
-			qdisc = &netlink.Tbf{QdiscAttrs: attrs, Rate: rateBytes, Limit: 1250, Buffer: 1250}
+			qdisc = &netlink.Netem{QdiscAttrs: attrs, Rate64: rateBytes, Limit: 100}
 		}
 		if err := nlOps.QdiscAdd(qdisc); err != nil {
 			return fmt.Errorf("failed to apply qdisc for %s: %w", profile, err)
@@ -244,6 +243,7 @@ func ApplyNetworkProfileWithEntropy(profile Profile, lossPercentage float32) err
 	netem := &netlink.Netem{
 		QdiscAttrs: attrs,
 		Loss:       uint32(lossPercentage * 100), // netem loss is in 1/100th of a percent
+		Limit:      1000, // packet queue limit
 	}
 
 	// Netem supports rate limiting via its Rate64 field (bytes per second)
