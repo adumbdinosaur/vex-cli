@@ -24,6 +24,7 @@ const (
 	CmdLinesClear  = "lines-clear"  // cancel a writing-lines task
 	CmdLinesStatus = "lines-status" // check progress
 	CmdLinesSubmit = "lines-submit" // submit one line of text
+	CmdResetScore  = "reset-score"  // reset failure score to zero
 )
 
 // Request is sent from the CLI to the daemon over the socket.

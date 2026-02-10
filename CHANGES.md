@@ -95,13 +95,60 @@ command being phased out in nixos-unstable) was not symlinked there.
 
 ---
 
+## 5. Anti-Tamper False-Positive Loop Fixed & Re-enabled — `antitamper.go`
+
+**Error:** `verifyNixConfig()` treated a missing systemd unit as tamper, triggering
+escalation every 60 seconds. The `escalate()` function doubled the failure score
+with no cooldown or cap, inflating it exponentially (50 → 204800 in ~12 minutes).
+
+**Root cause:** The service check ran `systemctl is-active vex-cli.service` and
+treated *any* non-"active" response as tampering — including when the unit file
+doesn't exist (dev environments, containers, manual starts). Combined with
+uncapped doubling in `escalate()`, this created a runaway score inflation loop.
+
+**Fix (`internal/antitamper/antitamper.go`):**
+- `verifyNixConfig()` now checks if the unit file exists first (`systemctl cat`).
+  If the unit is missing, the service check is skipped. Only flags tamper when
+  the unit *exists* but is not running.
+- `nix-store --verify` non-zero exits without corruption keywords are logged as
+  non-critical warnings rather than treated as tamper.
+- `escalate()` now has a **30-minute cooldown** (`EscalationCooldown`) — repeated
+  failures within the window are logged but don't compound the score.
+- **Score cap** (`MaxFailureScore = 500`) prevents runaway inflation.
+- **Doubling preserved** — the score still doubles per escalation event, but is
+  bounded by the cooldown and cap.
+- `verifyNixConfig()` **re-enabled** in `RunAllChecks()`.
+
+---
+
+## 6. `reset-score` Command — Manual Failure Score Reset
+
+**Problem:** The failure score was a monotonically increasing ratchet. `unlock`
+and `RecordCompletion()` set `Locked = false` and `TaskStatus = "completed"` but
+never touched `FailureScore`. The only way to lower it was manual JSON editing.
+
+**Fix:** Added `vex-cli reset-score` command:
+- `internal/ipc/protocol.go` — new `CmdResetScore` constant
+- `internal/security/security.go` — `"reset-score"` added to restriction-lowering
+  commands (requires signed Ed25519 authorization)
+- `cmd/vex-cli/main.go` — `cmdResetScore()` sends IPC request to daemon
+- `cmd/vexd/main.go` — `handleResetScore()` zeros `FailureScore` and
+  `TotalFailures`, persists, and logs the event
+
+**Usage:** `sudo ./bin/vex-cli reset-score '<signed_json_payload>'`
+
+---
+
 ## Files Changed
 
 | File | Lines changed |
 |---|---|
 | `internal/throttler/throttler.go` | Init() rewritten, 6× `if false` → `if err != nil` |
-| `internal/antitamper/antitamper.go` | `RunAllChecks()` — 3 dead checks restored; `verifyNixConfig()` subsequently disabled (infinite-loop score inflation) |
-| `internal/security/security.go` | SSH key parsing added, imports updated |
+| `internal/antitamper/antitamper.go` | `RunAllChecks()` — 3 dead checks restored; `verifyNixConfig()` false-positive loop fixed, re-enabled; escalation now has cooldown + score cap; doubling preserved |
+| `internal/security/security.go` | SSH key parsing added, imports updated; `reset-score` added to restriction-lowering commands |
+| `internal/ipc/protocol.go` | Added `CmdResetScore` command constant |
+| `cmd/vex-cli/main.go` | Added `reset-score` CLI command |
+| `cmd/vexd/main.go` | Added `handleResetScore` IPC handler |
 | `flake.nix` | Service `path`, `after`, `wants` added |
 
 ---

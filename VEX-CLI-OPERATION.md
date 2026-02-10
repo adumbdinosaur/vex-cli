@@ -192,6 +192,9 @@ sudo ./bin/vex-cli lines clear           # cancel the task
 # Lift all restrictions (requires signed authorization JSON)
 sudo ./bin/vex-cli unlock '<signed_json_payload>'
 
+# Reset failure score to zero (requires signed authorization JSON)
+sudo ./bin/vex-cli reset-score '<signed_json_payload>'
+
 # Run anti-tamper integrity checks
 sudo ./bin/vex-cli check
 
@@ -245,7 +248,8 @@ socket. Every exchange is one request followed by one response.
 | `lines-status`| none                            | Returns writing task progress        |
 | `lines-submit`| `{"line": "..."}`               | Submits one line, validates match    |
 | `unlock`     | none                             | Restores all to defaults, persists   |
-| `check`      | none                             | Runs anti-tamper checks (NixOS integrity check currently disabled) |
+| `reset-score`| none                             | Zeros failure score and total failures |
+| `check`      | none                             | Runs anti-tamper checks (NixOS config, service, binary integrity) |
 
 Every handler that mutates state also auto-persists to
 `/var/lib/vex-cli/system-state.json` after the handler returns.
@@ -295,7 +299,7 @@ Profile aliases also include `uncapped` → `standard`.
 | Guardian       | `internal/guardian`             | nftables SNI blocking, process reaper  |
 | Surveillance   | `internal/surveillance`         | Keyboard monitoring, latency injection |
 | Penance        | `internal/penance`              | Manifest loading, compliance checks    |
-| Anti-tamper    | `internal/antitamper`           | Binary/service integrity verification (NixOS config check temporarily disabled) |
+| Anti-tamper    | `internal/antitamper`           | Binary/service integrity verification, NixOS config checks |
 | Logging        | `internal/logging`              | Append-only audit log                  |
 | Security       | `internal/security`             | Ed25519 signed command verification    |
 | State          | `internal/state`                | Unified state load/save                |
@@ -439,6 +443,9 @@ sudo ./bin/vex-cli throttle standard
 sudo ./bin/vex-cli cpu 100
 sudo ./bin/vex-cli latency 0
 sudo ./bin/vex-cli oom 0
+
+# Reset failure score (requires signed auth)
+sudo ./bin/vex-cli reset-score '<signed_json_payload>'
 
 # Stop daemon
 Ctrl+C or: sudo kill -TERM $(pgrep vexd)

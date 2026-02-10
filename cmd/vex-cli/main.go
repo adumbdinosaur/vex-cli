@@ -109,6 +109,8 @@ func main() {
 		}
 	case "unlock":
 		cmdUnlock()
+	case "reset-score":
+		cmdResetScore()
 	case "state":
 		cmdState()
 	case "check":
@@ -165,6 +167,7 @@ func printUsage() {
 	fmt.Println("    lines status           Show progress")
 	fmt.Println("    lines submit           Interactive submission (type lines)")
 	fmt.Println("    lines clear            Cancel the active task")
+	fmt.Println("  reset-score  Reset failure score to zero (requires signed authorization)")
 	fmt.Println("  unlock       Lift all restrictions (requires signed authorization)")
 	fmt.Println("  check        Run anti-tamper and integrity checks")
 	fmt.Println()
@@ -386,6 +389,12 @@ func cmdBlockList() {
 		}
 		fmt.Printf("\n  Total: %d domains\n", len(s.Guardian.BlockedDomains))
 	}
+}
+
+func cmdResetScore() {
+	fmt.Println("Resetting failure score (authorized)…")
+	resp := sendOrDie(&ipc.Request{Command: ipc.CmdResetScore})
+	fmt.Println(resp.Message)
 }
 
 func cmdUnlock() {

@@ -129,6 +129,7 @@ func IsRestrictionLoweringCommand(command string) bool {
 		"restore-network": true,
 		"clear-penance":   true,
 		"set-standard":    true,
+		"reset-score":     true,
 	}
 	return restrictedCommands[command]
 }

@@ -227,6 +227,7 @@ func registerHandlers(srv *ipc.Server) {
 	srv.Handle(ipc.CmdOOM, handleOOM)
 	srv.Handle(ipc.CmdUnlock, handleUnlock)
 	srv.Handle(ipc.CmdCheck, handleCheck)
+	srv.Handle(ipc.CmdResetScore, handleResetScore)
 	srv.Handle(ipc.CmdBlockAdd, handleBlockAdd)
 	srv.Handle(ipc.CmdBlockRemove, handleBlockRemove)
 	srv.Handle(ipc.CmdBlockList, handleBlockList)
@@ -390,6 +391,32 @@ func handleUnlock(s *state.SystemState, req *ipc.Request) *ipc.Response {
 	return &ipc.Response{
 		OK:      true,
 		Message: "System state normalized. You may proceed.",
+		State:   s,
+	}
+}
+
+func handleResetScore(s *state.SystemState, req *ipc.Request) *ipc.Response {
+	cs, err := penance.LoadComplianceStatus()
+	if err != nil {
+		return &ipc.Response{OK: false, Error: fmt.Sprintf("failed to load compliance: %v", err)}
+	}
+
+	previous := cs.FailureScore
+	cs.FailureScore = 0
+	cs.TotalFailures = 0
+
+	if err := penance.SaveComplianceStatus(cs); err != nil {
+		return &ipc.Response{OK: false, Error: fmt.Sprintf("failed to save compliance: %v", err)}
+	}
+
+	s.Compliance.FailureScore = 0
+	s.ChangedBy = "cli"
+
+	vexlog.LogEvent("PENANCE", "SCORE_RESET", fmt.Sprintf("score %d -> 0", previous))
+
+	return &ipc.Response{
+		OK:      true,
+		Message: fmt.Sprintf("Failure score reset: %d → 0", previous),
 		State:   s,
 	}
 }
