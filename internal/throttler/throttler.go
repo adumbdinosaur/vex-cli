@@ -387,9 +387,30 @@ func ResolveProfile(input string) (Profile, error) {
 
 const cgroupMount = "/sys/fs/cgroup"
 
-// SetCPULimit limits the CPU usage of the entire container/system via Cgroup v2.
+// cpuMaxCandidates lists paths to try for cpu.max, in priority order.
+// The root cgroup never has cpu.max on a real host — it only exists
+// inside containers where the root *is* the container's cgroup.
+// On a normal NixOS/systemd host we target user.slice so the penalty
+// affects all user sessions.
+var cpuMaxCandidates = []string{
+	filepath.Join(cgroupMount, "cpu.max"),              // containers
+	filepath.Join(cgroupMount, "user.slice", "cpu.max"), // user processes (NixOS / systemd)
+	filepath.Join(cgroupMount, "system.slice", "cpu.max"),
+}
+
+// resolveCPUMaxPath finds the first existing cpu.max file from the
+// candidate list, or returns an error.
+func resolveCPUMaxPath() (string, error) {
+	for _, p := range cpuMaxCandidates {
+		if _, err := fsOps.Stat(p); err == nil {
+			return p, nil
+		}
+	}
+	return "", fmt.Errorf("cgroup v2 cpu.max not found (tried %v). Ensure cgroups v2 is enabled", cpuMaxCandidates)
+}
+
+// SetCPULimit limits CPU usage via Cgroup v2 cpu.max.
 // limitPercent: 0-100 (e.g., 15 for 15% of 1 core, or total capacity).
-// In v2, this edits cpu.max.
 func SetCPULimit(limitPercent int) error {
 	if limitPercent < 0 || limitPercent > 100 {
 		return fmt.Errorf("invalid percentage: %d", limitPercent)
@@ -398,31 +419,26 @@ func SetCPULimit(limitPercent int) error {
 	// Default period in microseconds (100ms)
 	period := 100000
 
-	// If limit is 100, we write "max"
+	// If limit is 100, we write "max" (unlimited)
 	var quota string
 	if limitPercent == 100 {
 		quota = "max"
 	} else {
-		// Calculate quota
-		// quota = (percent / 100) * period
 		quotaVal := (limitPercent * period) / 100
 		quota = strconv.Itoa(quotaVal)
 	}
 
 	value := fmt.Sprintf("%s %d", quota, period)
 
-	// We assume we are in the root cgroup of our namespace or just write to root
-	path := filepath.Join(cgroupMount, "cpu.max")
-
-	// Check if file exists
-	if _, err := fsOps.Stat(path); os.IsNotExist(err) {
-		return fmt.Errorf("cgroup v2 cpu.max not found at %s. Ensure Cgroups v2 is enabled", path)
+	path, err := resolveCPUMaxPath()
+	if err != nil {
+		return err
 	}
 
 	if err := fsOps.WriteFile(path, []byte(value), 0644); err != nil {
-		return fmt.Errorf("failed to write cpu limit: %w", err)
+		return fmt.Errorf("failed to write cpu limit to %s: %w", path, err)
 	}
 
-	log.Printf("CPU Limit Set: %d%% (%s)", limitPercent, strings.TrimSpace(value))
+	log.Printf("CPU Limit Set: %d%% (%s) → %s", limitPercent, strings.TrimSpace(value), path)
 	return nil
 }
