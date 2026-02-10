@@ -1,7 +1,6 @@
 {
   "forbidden_apps": [
     "steam",
-    "discord",
     "gamescope",
     "lutris",
     "heroic"
