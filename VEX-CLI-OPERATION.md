@@ -155,7 +155,24 @@ sudo vex-cli block list
 sudo vex-cli block rm reddit.com
 ```
 
-### 1.8 Run Interactive Penance Task
+### 1.8 Manage Forbidden Apps
+
+```bash
+# List all forbidden (auto-killed) applications
+sudo vex-cli app list
+
+# Remove an app from the forbidden list
+sudo vex-cli app rm steam
+
+# Add an app to the forbidden list
+sudo vex-cli app add steam
+```
+
+Changes are persisted to `forbidden-apps.json` immediately. The process
+reaper picks up the new list on its next scan cycle (every 2 seconds).
+If eBPF monitoring is active, it is updated in-place.
+
+### 1.9 Run Interactive Penance Task
 
 ```bash
 sudo vex-cli penance
@@ -167,7 +184,7 @@ required phrases, constraints), then reads multi-line text from stdin until
 EOF (Ctrl+D). Validates word count, required phrases, typing speed, and
 backspace violations. On success, the system unlocks automatically.
 
-### 1.9 Run Integrity Checks
+### 1.10 Run Integrity Checks
 
 ```bash
 sudo vex-cli check
@@ -175,7 +192,7 @@ sudo vex-cli check
 
 Checks: binary hash, NixOS config, systemd service status, debugger detection.
 
-### 1.10 Lift All Restrictions (Requires Authorization)
+### 1.11 Lift All Restrictions (Requires Authorization)
 
 ```bash
 # Requires a signed JSON payload from the management key holder
@@ -189,7 +206,7 @@ These commands verify an Ed25519 signature against the public key at
 `/etc/vex-cli/vex_management_key.pub`. Without a valid signature, the
 command is rejected.
 
-### 1.11 Apply Multiple Restrictions at Once
+### 1.12 Apply Multiple Restrictions at Once
 
 There is no single "apply punishment" command — compose individual commands:
 
@@ -473,6 +490,9 @@ default manifest (see [Section 11](#11-default-generation-behavior)).
 **Behavior when missing**: Guardian uses hardcoded defaults and attempts to
 create the file.
 
+**Runtime management**: Use `vex-cli app add/rm/list` to modify this file
+through the daemon. Changes take effect on the next reaper scan cycle (2s).
+
 ### 4.5 Blocked Domains (`/etc/vex-cli/blocked-domains.json`)
 
 ```json
@@ -631,6 +651,20 @@ nftables drop rules are created per resolved IP in table `vex-guardian`, chain
 `filter-output` (hook: output, priority: filter). A background goroutine
 re-resolves domains every 30 minutes to track CDN IP rotation.
 
+### Forbidden Apps (Process Blocklist)
+
+| Command                       | Action                                    |
+|-------------------------------|-------------------------------------------|
+| `vex-cli app list`            | List currently forbidden apps             |
+| `vex-cli app add <name>`      | Add an app to the forbidden list          |
+| `vex-cli app rm <name>`       | Remove an app from the forbidden list     |
+
+**Implementation**: Changes are persisted to `forbidden-apps.json` immediately.
+The process reaper (`scanAndReap`) reloads the file every 2-second cycle, so
+removed apps will no longer be killed and added apps will be terminated on the
+next scan. If the eBPF monitor is active, its in-memory list is updated
+immediately via `UpdateForbiddenApps()`.
+
 ### Writing-Lines Task
 
 | Command                                    | Action                          |
@@ -719,6 +753,9 @@ exactly one request-response pair, then the connection is closed.
 | `CmdBlockAdd`    | `"block-add"`   | `{"domain": "<fqdn>"}`              | Resolves domain IPs, adds nftables rules  |
 | `CmdBlockRemove` | `"block-rm"`    | `{"domain": "<fqdn>"}`              | Removes nftables rules, rebuilds          |
 | `CmdBlockList`   | `"block-list"`  | none                                | Returns blocked domains in state          |
+| `CmdAppAdd`      | `"app-add"`     | `{"app": "<name>"}`                 | Adds app to forbidden list, persists      |
+| `CmdAppRemove`   | `"app-rm"`      | `{"app": "<name>"}`                 | Removes app from forbidden list, persists |
+| `CmdAppList`     | `"app-list"`    | none                                | Returns comma-separated forbidden apps    |
 | `CmdLinesSet`    | `"lines-set"`   | `{"phrase":"...","count":"<int>"}`   | Creates writing-lines task                |
 | `CmdLinesClear`  | `"lines-clear"` | none                                | Cancels active writing task               |
 | `CmdLinesStatus` | `"lines-status"`| none                                | Returns writing task progress             |
