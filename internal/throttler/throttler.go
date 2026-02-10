@@ -79,8 +79,8 @@ var (
 	fsOps         FileOps    = &RealFileOps{}
 )
 
-// Init initializes the throttler subsystem
-func Init() error {
+// DEBUG: Init started
+func Init() error { log.Printf("THROTTLER: Init entered");
 	log.Println("Initializing Throttler Subsystem...")
 
 	// Auto-detect interface if possible, or default to generic
