@@ -102,10 +102,10 @@ func verifyNixConfig() error {
 	// 0. Check if running as a service first — if the unit file doesn't exist,
 	//    skip all integrity checks (e.g. running outside systemd, in development,
 	//    or inside a container).
-	unitOutput, unitErr := cmdRunner.Run("systemctl", "cat", "vex-cli.service")
+	unitOutput, unitErr := cmdRunner.Run("systemctl", "cat", "vexd.service")
 	if unitErr != nil {
 		// Unit file not found — not a systemd-managed install; skip all checks.
-		log.Printf("Anti-Tamper: vex-cli.service unit not found, skipping all Nix integrity checks")
+		log.Printf("Anti-Tamper: vexd.service unit not found, skipping all Nix integrity checks")
 		return nil
 	}
 	_ = unitOutput // unit exists
@@ -128,10 +128,10 @@ func verifyNixConfig() error {
 	}
 
 	// 3. Service check — verify the service is actually running.
-	statusOutput, statusErr := cmdRunner.Run("systemctl", "is-active", "vex-cli.service")
+	statusOutput, statusErr := cmdRunner.Run("systemctl", "is-active", "vexd.service")
 	statusStr := strings.TrimSpace(string(statusOutput))
 	if statusErr != nil || statusStr != "active" {
-		return fmt.Errorf("vex-cli.service unit exists but is not active (status: %s)", statusStr)
+		return fmt.Errorf("vexd.service unit exists but is not active (status: %s)", statusStr)
 	}
 
 	return nil
