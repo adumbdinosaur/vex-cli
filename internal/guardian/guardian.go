@@ -540,6 +540,94 @@ func loadForbiddenApps() []string {
 	return config.Apps
 }
 
+// saveForbiddenApps persists the forbidden apps list to forbidden-apps.json.
+func saveForbiddenApps(apps []string) error {
+	config := struct {
+		Apps []string `json:"forbidden_apps"`
+	}{Apps: apps}
+
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal forbidden apps: %w", err)
+	}
+
+	if err := fsOps.WriteFile("forbidden-apps.json", data, 0644); err != nil {
+		return fmt.Errorf("failed to write forbidden-apps.json: %w", err)
+	}
+	return nil
+}
+
+// GetForbiddenApps returns the current forbidden apps list.
+func GetForbiddenApps() []string {
+	return loadForbiddenApps()
+}
+
+// AddForbiddenApp adds an application to the forbidden apps list.
+// Returns true if the app was actually added (false if already present).
+func AddForbiddenApp(app string) (bool, error) {
+	app = strings.ToLower(strings.TrimSpace(app))
+	if app == "" {
+		return false, fmt.Errorf("empty app name")
+	}
+
+	apps := loadForbiddenApps()
+
+	// Check for duplicate
+	for _, a := range apps {
+		if strings.ToLower(a) == app {
+			return false, nil
+		}
+	}
+
+	apps = append(apps, app)
+	if err := saveForbiddenApps(apps); err != nil {
+		return false, err
+	}
+
+	// Update eBPF monitor if active
+	if ebpfMon != nil && ebpfMon.IsEnabled() {
+		ebpfMon.UpdateForbiddenApps()
+	}
+
+	log.Printf("Guardian: App added to forbidden list: %s (total: %d)", app, len(apps))
+	return true, nil
+}
+
+// RemoveForbiddenApp removes an application from the forbidden apps list.
+// Returns true if the app was actually removed (false if not found).
+func RemoveForbiddenApp(app string) (bool, error) {
+	app = strings.ToLower(strings.TrimSpace(app))
+	if app == "" {
+		return false, fmt.Errorf("empty app name")
+	}
+
+	apps := loadForbiddenApps()
+
+	idx := -1
+	for i, a := range apps {
+		if strings.ToLower(a) == app {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return false, nil
+	}
+
+	apps = append(apps[:idx], apps[idx+1:]...)
+	if err := saveForbiddenApps(apps); err != nil {
+		return false, err
+	}
+
+	// Update eBPF monitor if active
+	if ebpfMon != nil && ebpfMon.IsEnabled() {
+		ebpfMon.UpdateForbiddenApps()
+	}
+
+	log.Printf("Guardian: App removed from forbidden list: %s (total: %d)", app, len(apps))
+	return true, nil
+}
+
 func scanAndReap() {
 	apps := loadForbiddenApps()
 

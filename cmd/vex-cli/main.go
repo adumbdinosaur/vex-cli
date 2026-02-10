@@ -140,6 +140,28 @@ func main() {
 			fmt.Printf("Unknown lines subcommand: %s\n", os.Args[2])
 			os.Exit(1)
 		}
+	case "app":
+		if len(os.Args) < 3 {
+			cmdAppList()
+			return
+		}
+		switch os.Args[2] {
+		case "add":
+			if len(os.Args) < 4 {
+				log.Fatal("Usage: vex-cli app add <name>")
+			}
+			cmdAppAdd(os.Args[3])
+		case "rm", "remove", "del":
+			if len(os.Args) < 4 {
+				log.Fatal("Usage: vex-cli app rm <name>")
+			}
+			cmdAppRemove(os.Args[3])
+		case "list", "ls":
+			cmdAppList()
+		default:
+			fmt.Printf("Unknown app subcommand: %s\n", os.Args[2])
+			os.Exit(1)
+		}
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printUsage()
@@ -170,6 +192,10 @@ func printUsage() {
 	fmt.Println("    lines status           Show progress")
 	fmt.Println("    lines submit           Interactive submission (type lines)")
 	fmt.Println("    lines clear            Cancel the active task")
+	fmt.Println("  app          Manage forbidden apps (process blocklist):")
+	fmt.Println("    app add <name>         Add an app to the forbidden list")
+	fmt.Println("    app rm <name>          Remove an app from the forbidden list")
+	fmt.Println("    app list               List currently forbidden apps")
 	fmt.Println("  reset-score  Reset failure score to zero (requires signed authorization)")
 	fmt.Println("  unlock       Lift all restrictions (requires signed authorization)")
 	fmt.Println("  check        Run anti-tamper and integrity checks")
@@ -402,6 +428,37 @@ func cmdResetScore() {
 	fmt.Println("Resetting failure score (authorized)…")
 	resp := sendOrDie(&ipc.Request{Command: ipc.CmdResetScore})
 	fmt.Println(resp.Message)
+}
+
+func cmdAppAdd(app string) {
+	resp := sendOrDie(&ipc.Request{
+		Command: ipc.CmdAppAdd,
+		Args:    map[string]string{"app": app},
+	})
+	fmt.Println(resp.Message)
+}
+
+func cmdAppRemove(app string) {
+	resp := sendOrDie(&ipc.Request{
+		Command: ipc.CmdAppRemove,
+		Args:    map[string]string{"app": app},
+	})
+	fmt.Println(resp.Message)
+}
+
+func cmdAppList() {
+	resp := sendOrDie(&ipc.Request{Command: ipc.CmdAppList})
+
+	fmt.Println("[GUARDIAN — FORBIDDEN APPS]")
+	if resp.Message == "" {
+		fmt.Println("  (no forbidden apps)")
+	} else {
+		apps := strings.Split(resp.Message, ",")
+		for i, a := range apps {
+			fmt.Printf("  %d. %s\n", i+1, a)
+		}
+		fmt.Printf("\n  Total: %d apps\n", len(apps))
+	}
 }
 
 func cmdUnlock() {

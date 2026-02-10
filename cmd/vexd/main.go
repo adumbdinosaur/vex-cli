@@ -231,6 +231,9 @@ func registerHandlers(srv *ipc.Server) {
 	srv.Handle(ipc.CmdBlockAdd, handleBlockAdd)
 	srv.Handle(ipc.CmdBlockRemove, handleBlockRemove)
 	srv.Handle(ipc.CmdBlockList, handleBlockList)
+	srv.Handle(ipc.CmdAppAdd, handleAppAdd)
+	srv.Handle(ipc.CmdAppRemove, handleAppRemove)
+	srv.Handle(ipc.CmdAppList, handleAppList)
 	srv.Handle(ipc.CmdLinesSet, handleLinesSet)
 	srv.Handle(ipc.CmdLinesClear, handleLinesClear)
 	srv.Handle(ipc.CmdLinesStatus, handleLinesStatus)
@@ -488,6 +491,69 @@ func handleBlockList(s *state.SystemState, req *ipc.Request) *ipc.Response {
 
 // suppress unused import lint for strings (used by log formatting)
 var _ = strings.TrimSpace
+
+// ── Forbidden-app handlers ──────────────────────────────────────────
+
+func handleAppAdd(s *state.SystemState, req *ipc.Request) *ipc.Response {
+	app, ok := req.Args["app"]
+	if !ok || app == "" {
+		return &ipc.Response{OK: false, Error: "missing 'app' argument"}
+	}
+
+	if !dryRun {
+		added, err := guardian.AddForbiddenApp(app)
+		if err != nil {
+			return &ipc.Response{OK: false, Error: fmt.Sprintf("failed to add app: %v", err)}
+		}
+		if !added {
+			return &ipc.Response{OK: true, Message: fmt.Sprintf("App '%s' is already in the forbidden list", app), State: s}
+		}
+	} else {
+		log.Printf("[DRY-RUN] Would add app to forbidden list: %s", app)
+	}
+
+	s.ChangedBy = "cli"
+	vexlog.LogEvent("GUARDIAN", "APP_BLOCKED", fmt.Sprintf("app=%s, source=cli", app))
+
+	return &ipc.Response{OK: true, Message: fmt.Sprintf("App added to forbidden list: %s", app), State: s}
+}
+
+func handleAppRemove(s *state.SystemState, req *ipc.Request) *ipc.Response {
+	app, ok := req.Args["app"]
+	if !ok || app == "" {
+		return &ipc.Response{OK: false, Error: "missing 'app' argument"}
+	}
+
+	if !dryRun {
+		removed, err := guardian.RemoveForbiddenApp(app)
+		if err != nil {
+			return &ipc.Response{OK: false, Error: fmt.Sprintf("failed to remove app: %v", err)}
+		}
+		if !removed {
+			return &ipc.Response{OK: true, Message: fmt.Sprintf("App '%s' is not in the forbidden list", app), State: s}
+		}
+	} else {
+		log.Printf("[DRY-RUN] Would remove app from forbidden list: %s", app)
+	}
+
+	s.ChangedBy = "cli"
+	vexlog.LogEvent("GUARDIAN", "APP_UNBLOCKED", fmt.Sprintf("app=%s, source=cli", app))
+
+	return &ipc.Response{OK: true, Message: fmt.Sprintf("App removed from forbidden list: %s", app), State: s}
+}
+
+func handleAppList(s *state.SystemState, req *ipc.Request) *ipc.Response {
+	apps := guardian.GetForbiddenApps()
+	// Encode apps as a comma-separated string in the message for the CLI to parse
+	msg := ""
+	for i, a := range apps {
+		if i > 0 {
+			msg += ","
+		}
+		msg += a
+	}
+	return &ipc.Response{OK: true, Message: msg, State: s}
+}
 
 // ── Writing-lines handlers ──────────────────────────────────────────
 
