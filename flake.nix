@@ -54,7 +54,7 @@
       # Embed the expected binary hash at build time for self-verification
       ldflags = [
         "-s" "-w"
-        "-X github.com/adumbdinosaur/vex-cli/internal/antitamper.ExpectedBinaryHash=d1f5faeca30cde86b039df3487ca62406269cc45e33e9c01a65eaba7010b51c4"
+        "-X github.com/adumbdinosaur/vex-cli/internal/antitamper.ExpectedBinaryHash=37bd5d4e6563535266e5948dcc91db2eea40148fc1221c0f69cf542be53f4e08"
       ];
 
       meta = {
