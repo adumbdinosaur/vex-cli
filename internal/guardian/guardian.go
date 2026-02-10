@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -68,7 +69,7 @@ func (r *RealFirewallOps) Setup(blockedDomains []string) error {
 	table = conn.AddTable(table)
 
 	chain := &nftables.Chain{
-		Name:     "filter-sni",
+		Name:     "filter-output",
 		Table:    table,
 		Type:     nftables.ChainTypeFilter,
 		Hooknum:  nftables.ChainHookOutput,
@@ -76,27 +77,36 @@ func (r *RealFirewallOps) Setup(blockedDomains []string) error {
 	}
 	conn.AddChain(chain)
 
-	// Add SNI blocking rules: drop packets to port 443 containing blocked domain names
-	// NFTables raw payload matching on TLS ClientHello SNI extension
+	// Resolve each blocked domain to IPs and add drop rules per IP.
+	// This replaces the previous (broken) SNI payload matching approach
+	// which lacked a Cmp expression and dropped ALL port-443 traffic.
+	totalRules := 0
 	for _, domain := range blockedDomains {
-		// Use nftables anonymous set with payload match for SNI strings
-		// This creates rules that inspect the TLS handshake for the Server Name Indication
-		rule := &nftables.Rule{
-			Table: table,
-			Chain: chain,
-			// Match TCP dport 443 + payload contains domain -> verdict drop
-			// The google/nftables library uses Exprs for building rules
-			Exprs: buildSNIBlockExprs(domain),
+		ips := resolveDomain(domain)
+		if len(ips) == 0 {
+			log.Printf("Guardian: WARNING — could not resolve %s, skipping", domain)
+			continue
 		}
-		conn.AddRule(rule)
-		log.Printf("Guardian: Added SNI block rule for: %s", domain)
+		for _, ip := range ips {
+			ip4 := ip.To4()
+			if ip4 == nil {
+				continue // IPv4 table only; skip IPv6 addresses
+			}
+			conn.AddRule(&nftables.Rule{
+				Table: table,
+				Chain: chain,
+				Exprs: buildIPBlockExprs(ip4),
+			})
+			totalRules++
+		}
+		log.Printf("Guardian: Blocked %s (%d IPs resolved)", domain, len(ips))
 	}
 
 	if err := conn.Flush(); err != nil {
 		return fmt.Errorf("failed to apply firewall rules: %w", err)
 	}
 
-	log.Printf("Guardian: NFTables 'vex-guardian' initialized with %d SNI block rules.", len(blockedDomains))
+	log.Printf("Guardian: NFTables 'vex-guardian' initialized with %d IP block rules for %d domains.", totalRules, len(blockedDomains))
 	return nil
 }
 
@@ -116,45 +126,57 @@ func (r *RealFirewallOps) Clear() error {
 	return nil
 }
 
-// buildSNIBlockExprs creates nftables expressions that match TCP port 443
-// and drop packets containing the specified domain in the TLS SNI field.
-func buildSNIBlockExprs(domain string) []expr.Any {
-	// nftables expression chain:
-	// 1. Match IP protocol = TCP (6)
-	// 2. Match TCP destination port = 443
-	// 3. Payload match for domain string in TLS ClientHello SNI
-	// 4. Verdict: drop
-	//
-	// Using raw payload expressions via the google/nftables expr package.
-	// The actual byte-level matching is handled by the kernel nf_tables subsystem.
-
+// buildIPBlockExprs creates nftables expressions that drop all outbound TCP
+// traffic to the given IPv4 address.  This replaces the previous broken SNI
+// matching which lacked a comparison expression and dropped all port-443 traffic.
+func buildIPBlockExprs(ip4 net.IP) []expr.Any {
 	return []expr.Any{
 		// meta l4proto tcp
 		&expr.Meta{Key: expr.MetaKeyL4PROTO, Register: 1},
 		&expr.Cmp{Op: expr.CmpOpEq, Register: 1, Data: []byte{unix.IPPROTO_TCP}},
 
-		// tcp dport 443
+		// Match destination IP address (offset 16 in IPv4 header, 4 bytes)
 		&expr.Payload{
 			DestRegister: 1,
-			Base:         expr.PayloadBaseTransportHeader,
-			Offset:       2, // TCP destination port offset
-			Len:          2,
+			Base:         expr.PayloadBaseNetworkHeader,
+			Offset:       16,
+			Len:          4,
 		},
-		&expr.Cmp{Op: expr.CmpOpEq, Register: 1, Data: []byte{0x01, 0xBB}}, // 443
-
-		// Payload match for SNI domain string in application layer
-		// TLS ClientHello SNI starts at a variable offset within the TLS handshake.
-		// We use a simple heuristic offset past the TCP+TLS record headers.
-		&expr.Payload{
-			DestRegister: 1,
-			Base:         expr.PayloadBaseTransportHeader,
-			Offset:       uint32(len(domain) + 9), // Approximate offset into TLS ClientHello SNI
-			Len:          uint32(len(domain)),
-		},
+		&expr.Cmp{Op: expr.CmpOpEq, Register: 1, Data: []byte(ip4.To4())},
 
 		// Drop verdict
 		&expr.Verdict{Kind: expr.VerdictDrop},
 	}
+}
+
+// resolveDomain resolves a domain name (and its www. variant) to IP addresses.
+func resolveDomain(domain string) []net.IP {
+	seen := make(map[string]bool)
+	var result []net.IP
+
+	candidates := []string{domain}
+	if !strings.HasPrefix(domain, "www.") {
+		candidates = append(candidates, "www."+domain)
+	}
+
+	for _, d := range candidates {
+		addrs, err := net.LookupHost(d)
+		if err != nil {
+			log.Printf("Guardian: DNS lookup for %s: %v", d, err)
+			continue
+		}
+		for _, addr := range addrs {
+			if seen[addr] {
+				continue
+			}
+			seen[addr] = true
+			if ip := net.ParseIP(addr); ip != nil {
+				result = append(result, ip)
+			}
+		}
+	}
+
+	return result
 }
 
 // -- Initialization --
@@ -163,10 +185,15 @@ var (
 	fsOps  FileSystem  = &RealFileSystem{}
 	sysOps SystemOps   = &RealSystemOps{}
 	fwOps  FirewallOps = &RealFirewallOps{}
-	
+
 	// Global eBPF monitor instance
 	ebpfMon *EBPFMonitor
 	useEBPF bool = true // Default to trying eBPF, fallback to /proc on error
+
+	// DNS refresh: periodically re-resolve blocked domains so that
+	// IP-based firewall rules stay current when CDN addresses rotate.
+	refreshTicker *time.Ticker
+	refreshDone   chan struct{}
 )
 
 // Init initializes the guardian subsystem
@@ -212,6 +239,8 @@ func Init(penaltyActive bool) error {
 		activeDomains = blockedDomains
 		if err := fwOps.Setup(blockedDomains); err != nil {
 			log.Printf("Guardian: Firewall initialization failed: %v", err)
+		} else if len(blockedDomains) > 0 {
+			startDNSRefresh()
 		}
 	} else {
 		activeDomains = nil
@@ -244,9 +273,10 @@ func GetMonitorStatus() string {
 	return "/proc polling (standard)"
 }
 
-// Shutdown performs cleanup of guardian resources: eBPF monitor and nftables rules.
+// Shutdown performs cleanup of guardian resources: eBPF monitor, DNS refresh, and nftables rules.
 func Shutdown() error {
 	var errs []string
+	stopDNSRefresh()
 	if ebpfMon != nil {
 		log.Println("Guardian: Shutting down eBPF monitor...")
 		if err := ebpfMon.Close(); err != nil {
@@ -345,13 +375,64 @@ func SetBlockedDomains(domains []string) error {
 }
 
 // rebuildFirewall clears the existing table and rebuilds it with activeDomains.
+// DNS resolution is performed inside fwOps.Setup to obtain current IPs.
 func rebuildFirewall() error {
 	// Clear first (ignore errors — table might not exist yet)
 	_ = fwOps.Clear()
 	if len(activeDomains) == 0 {
+		stopDNSRefresh()
 		return nil
 	}
-	return fwOps.Setup(activeDomains)
+	if err := fwOps.Setup(activeDomains); err != nil {
+		return err
+	}
+	// Ensure periodic IP re-resolution is running
+	if refreshTicker == nil {
+		startDNSRefresh()
+	}
+	return nil
+}
+
+// startDNSRefresh begins a background goroutine that periodically re-resolves
+// blocked domains and rebuilds the firewall rules so IP changes are tracked.
+func startDNSRefresh() {
+	stopDNSRefresh()
+	refreshDone = make(chan struct{})
+	refreshTicker = time.NewTicker(30 * time.Minute)
+	go func() {
+		for {
+			select {
+			case <-refreshTicker.C:
+				if len(activeDomains) > 0 {
+					log.Println("Guardian: Refreshing domain IP resolutions...")
+					_ = fwOps.Clear()
+					if err := fwOps.Setup(activeDomains); err != nil {
+						log.Printf("Guardian: IP refresh failed: %v", err)
+					}
+				}
+			case <-refreshDone:
+				return
+			}
+		}
+	}()
+	log.Println("Guardian: DNS refresh goroutine started (30m interval)")
+}
+
+// stopDNSRefresh tears down the periodic DNS resolution goroutine.
+func stopDNSRefresh() {
+	if refreshTicker != nil {
+		refreshTicker.Stop()
+		refreshTicker = nil
+	}
+	if refreshDone != nil {
+		select {
+		case <-refreshDone:
+			// already closed
+		default:
+			close(refreshDone)
+		}
+		refreshDone = nil
+	}
 }
 
 // SNI block list default domains
