@@ -5,6 +5,7 @@ import (
 	"log"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/adumbdinosaur/vex-cli/internal/penance"
@@ -35,6 +36,17 @@ var (
 
 	// CheckInterval controls how often integrity checks run
 	CheckInterval = 60 * time.Second
+
+	// EscalationCooldown prevents repeated escalations from compounding
+	// the failure score in a tight loop. After an escalation fires, the
+	// next one is suppressed until this duration elapses.
+	EscalationCooldown = 30 * time.Minute
+
+	// MaxFailureScore caps the failure score to prevent runaway inflation.
+	MaxFailureScore = 500
+
+	lastEscalation   time.Time
+	escalationMu     sync.Mutex
 )
 
 // Init starts the anti-tamper detection subsystem
@@ -66,10 +78,9 @@ func RunAllChecks() error {
 	}
 
 	// 2. NixOS configuration integrity
-	// TODO: disabled – causes infinite-loop score inflation even when integrity is valid
-	// if err := verifyNixConfig(); err != nil {
-	// 	errors = append(errors, fmt.Sprintf("NixOS config: %v", err))
-	// }
+	if err := verifyNixConfig(); err != nil {
+		errors = append(errors, fmt.Sprintf("NixOS config: %v", err))
+	}
 
 	// 3. Service file integrity
 	if err := verifyServiceIntegrity(); err != nil {
@@ -87,33 +98,40 @@ func RunAllChecks() error {
 
 // verifyNixConfig checks the NixOS system configuration against the Nix store
 // to detect manual overrides or unauthorized changes.
-// NOTE: currently disabled in RunAllChecks – re-enable once the false-positive loop is fixed.
 func verifyNixConfig() error {
-	// Check if current system matches the expected Nix store path
-	// nix-store --verify --check-contents validates store integrity
+	// 1. Nix store integrity — only flag actual corruption, not warnings.
 	output, err := cmdRunner.Run("nix-store", "--verify", "--check-contents")
 	if err != nil {
-		// Parse output for corruption indicators
-		if strings.Contains(string(output), "path") && strings.Contains(string(output), "corrupt") {
-			return fmt.Errorf("nix store corruption detected: %s", string(output))
+		outStr := string(output)
+		if strings.Contains(outStr, "path") && strings.Contains(outStr, "corrupt") {
+			return fmt.Errorf("nix store corruption detected: %s", outStr)
 		}
-		// nix-store verify may return non-zero for warnings; check output
-		log.Printf("Anti-Tamper: nix-store verify output: %s", string(output))
+		// Non-zero exit with no corruption keyword is a harmless warning.
+		log.Printf("Anti-Tamper: nix-store verify output (non-critical): %s", outStr)
 	}
 
-	// Check that the current system profile matches expected configuration
-	// by verifying the system derivation hasn't been modified outside of nix
-	output, err = cmdRunner.Run("nix-instantiate", "--eval", "-E",
-		"(import <nixpkgs/nixos> {}).config.system.stateVersion")
-	if err != nil {
-		log.Printf("Anti-Tamper: Could not verify NixOS state version: %v", err)
-		// Not necessarily tamper - might not be NixOS
+	// 2. NixOS state version — informational only; absence doesn't imply tamper.
+	if _, err := cmdRunner.Run("nix-instantiate", "--eval", "-E",
+		"(import <nixpkgs/nixos> {}).config.system.stateVersion"); err != nil {
+		log.Printf("Anti-Tamper: Could not verify NixOS state version: %v (non-critical)", err)
 	}
 
-	// Verify vex-cli service configuration hasn't been modified
-	output, err = cmdRunner.Run("systemctl", "is-active", "vex-cli.service")
-	if err != nil || !strings.Contains(string(output), "active") {
-		return fmt.Errorf("vex-cli service not active or tampered: %s", string(output))
+	// 3. Service check — only treat as tamper if the unit file exists but
+	//    the service is not running.  If the unit is missing entirely
+	//    (e.g. running outside systemd, in development, or inside a
+	//    container), this is not evidence of tampering.
+	unitOutput, unitErr := cmdRunner.Run("systemctl", "cat", "vex-cli.service")
+	if unitErr != nil {
+		// Unit file not found — not a systemd-managed install; skip.
+		log.Printf("Anti-Tamper: vex-cli.service unit not found, skipping service check")
+		return nil
+	}
+	_ = unitOutput // unit exists
+
+	statusOutput, statusErr := cmdRunner.Run("systemctl", "is-active", "vex-cli.service")
+	statusStr := strings.TrimSpace(string(statusOutput))
+	if statusErr != nil || statusStr != "active" {
+		return fmt.Errorf("vex-cli.service unit exists but is not active (status: %s)", statusStr)
 	}
 
 	return nil
@@ -140,9 +158,22 @@ func verifyServiceIntegrity() error {
 	return nil
 }
 
-// escalate triggers automatic escalation when tampering is detected
+// escalate triggers automatic escalation when tampering is detected.
+// It enforces a cooldown so that repeated periodic-check failures cannot
+// compound the score in an exponential loop, and caps the score to
+// prevent runaway inflation.
 func escalate(reasons []string) {
+	escalationMu.Lock()
+	defer escalationMu.Unlock()
+
 	log.Printf("Anti-Tamper: ⚠️ ESCALATION TRIGGERED: %v", reasons)
+
+	// Cooldown: suppress score inflation if we already escalated recently.
+	if !lastEscalation.IsZero() && time.Since(lastEscalation) < EscalationCooldown {
+		log.Printf("Anti-Tamper: Escalation cooldown active (last: %s ago), skipping score change",
+			time.Since(lastEscalation).Round(time.Second))
+		return
+	}
 
 	// 1. Immediately enter black-hole network state
 	if err := throttler.ApplyNetworkProfile(throttler.ProfileBlackHole); err != nil {
@@ -151,10 +182,10 @@ func escalate(reasons []string) {
 		log.Println("Anti-Tamper: Network set to BLACK-HOLE")
 	}
 
-	// 2. Double the current failure_score
+	// 2. Double the current failure score (capped).
 	cs, err := penance.LoadComplianceStatus()
 	if err != nil {
-		log.Printf("Anti-Tamper: Could not load compliance for doubling: %v", err)
+		log.Printf("Anti-Tamper: Could not load compliance for escalation: %v", err)
 		return
 	}
 
@@ -164,6 +195,9 @@ func escalate(reasons []string) {
 	} else {
 		cs.FailureScore *= 2
 	}
+	if cs.FailureScore > MaxFailureScore {
+		cs.FailureScore = MaxFailureScore
+	}
 	cs.Locked = true
 	cs.TaskStatus = "failed"
 
@@ -171,7 +205,9 @@ func escalate(reasons []string) {
 		log.Printf("Anti-Tamper: Could not save escalated compliance: %v", err)
 	}
 
-	log.Printf("Anti-Tamper: Failure score DOUBLED: %d -> %d", previousScore, cs.FailureScore)
+	lastEscalation = time.Now()
+	log.Printf("Anti-Tamper: Failure score DOUBLED: %d -> %d (cap: %d)",
+		previousScore, cs.FailureScore, MaxFailureScore)
 }
 
 // periodicMonitor runs integrity checks on a regular interval
