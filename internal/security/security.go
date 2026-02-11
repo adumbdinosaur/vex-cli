@@ -9,6 +9,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/user"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -228,4 +231,51 @@ func ParseSignedCommand(data []byte) (*SignedCommand, error) {
 		return nil, fmt.Errorf("failed to parse signed command: %w", err)
 	}
 	return &cmd, nil
+}
+
+// EnsureConfigPermissions sets group ownership of the config directory
+// (/etc/vex-cli) and its files to the 'vex' group with group-read
+// permissions.  This allows non-root vex group members to read the
+// management public key and penance manifests.  Must be called as root
+// (i.e. from the daemon).
+func EnsureConfigPermissions() {
+	const configDir = "/etc/vex-cli"
+
+	grp, err := user.LookupGroup("vex")
+	if err != nil {
+		log.Printf("Security: 'vex' group not found, skipping config permission fix: %v", err)
+		return
+	}
+	gid, err := strconv.Atoi(grp.Gid)
+	if err != nil {
+		return
+	}
+
+	// Set the directory itself: rwxr-x--- (owner full, group traverse)
+	if err := os.Chown(configDir, -1, gid); err != nil {
+		log.Printf("Security: WARNING - Could not chown %s: %v", configDir, err)
+		return
+	}
+	if err := os.Chmod(configDir, 0750); err != nil {
+		log.Printf("Security: WARNING - Could not chmod %s: %v", configDir, err)
+	}
+
+	// Walk all files in the config dir and set group-readable
+	entries, err := os.ReadDir(configDir)
+	if err != nil {
+		log.Printf("Security: WARNING - Could not list %s: %v", configDir, err)
+		return
+	}
+	for _, entry := range entries {
+		path := filepath.Join(configDir, entry.Name())
+		if err := os.Chown(path, -1, gid); err != nil {
+			log.Printf("Security: WARNING - Could not chown %s: %v", path, err)
+			continue
+		}
+		// rw-r----- : owner read/write, group read
+		if err := os.Chmod(path, 0640); err != nil {
+			log.Printf("Security: WARNING - Could not chmod %s: %v", path, err)
+		}
+	}
+	log.Printf("Security: Config directory permissions set for vex group")
 }

@@ -58,6 +58,11 @@ func main() {
 		log.Printf("Security initialization warning: %v", err)
 	}
 
+	// Ensure config files and the log are accessible to vex group members
+	// so non-root users running vex-cli can read manifests, keys, and
+	// append to the shared log file.
+	security.EnsureConfigPermissions()
+
 	// ── Load persisted state ────────────────────────────────────────
 	sysState, err := state.Load()
 	if err != nil {
@@ -234,6 +239,7 @@ func registerHandlers(srv *ipc.Server) {
 	srv.Handle(ipc.CmdAppAdd, handleAppAdd)
 	srv.Handle(ipc.CmdAppRemove, handleAppRemove)
 	srv.Handle(ipc.CmdAppList, handleAppList)
+	srv.Handle(ipc.CmdPenanceInput, handlePenanceInput)
 	srv.Handle(ipc.CmdLinesSet, handleLinesSet)
 	srv.Handle(ipc.CmdLinesClear, handleLinesClear)
 	srv.Handle(ipc.CmdLinesStatus, handleLinesStatus)
@@ -553,6 +559,18 @@ func handleAppList(s *state.SystemState, req *ipc.Request) *ipc.Response {
 		msg += a
 	}
 	return &ipc.Response{OK: true, Message: msg, State: s}
+}
+
+// ── Penance input handler ───────────────────────────────────────────
+
+func handlePenanceInput(s *state.SystemState, req *ipc.Request) *ipc.Response {
+	line := req.Args["line"]
+	num := req.Args["num"]
+
+	vexlog.LogEvent("PENANCE", "INPUT_RECEIVED",
+		fmt.Sprintf("line_num=%s words=%d content=%q", num, len(strings.Fields(line)), line))
+
+	return &ipc.Response{OK: true, Message: fmt.Sprintf("Line %s logged", num)}
 }
 
 // ── Writing-lines handlers ──────────────────────────────────────────

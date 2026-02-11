@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"strconv"
+	"syscall"
 
 	vexlog "github.com/adumbdinosaur/vex-cli/internal/logging"
 	"github.com/adumbdinosaur/vex-cli/internal/state"
@@ -35,14 +36,23 @@ func NewServer(sysState *state.SystemState) (*Server, error) {
 	// Remove stale socket from a previous run.
 	os.Remove(state.SocketPath)
 
+	// Clear the umask before bind() so the socket is created with full
+	// permissions.  We restore it immediately after Listen returns.
+	// Without this the default umask (often 0022 or 0077) strips the
+	// group-write bit that non-root vex-group members need to connect().
+	oldMask := syscall.Umask(0)
 	ln, err := net.Listen("unix", state.SocketPath)
+	syscall.Umask(oldMask) // restore original umask
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on %s: %w", state.SocketPath, err)
 	}
 
 	// Set permissions so vex group members can connect.
 	// Both the directory AND the socket must be accessible.
-	os.Chmod(state.SocketPath, 0660)
+	// Unix domain sockets require 'w' (write) permission to connect().
+	if err := os.Chmod(state.SocketPath, 0660); err != nil {
+		log.Printf("IPC: WARNING - Could not chmod socket to 0660: %v", err)
+	}
 
 	if err := setSocketGroup(state.SocketPath, "vex"); err != nil {
 		log.Printf("IPC: WARNING - Could not set socket group to 'vex': %v", err)

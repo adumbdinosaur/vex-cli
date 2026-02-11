@@ -181,6 +181,8 @@ func Save(s *SystemState) error {
 
 // EnsureSocketDir creates /run/vex-cli/ if it doesn't exist and sets
 // group ownership to 'vex' so non-root group members can access the socket.
+// The directory needs at least group 'x' (execute/search) permission so
+// members can look up the socket file by name.
 func EnsureSocketDir() error {
 	dir := filepath.Dir(SocketPath)
 	if _, err := fsOps.Stat(dir); os.IsNotExist(err) {
@@ -188,8 +190,11 @@ func EnsureSocketDir() error {
 			return err
 		}
 	}
-	// Ensure correct permissions even if directory already exists
-	os.Chmod(dir, 0750)
+	// Ensure correct permissions even if directory already exists.
+	// 0750 = rwxr-x--- : owner full, group traverse+read, other nothing.
+	if err := os.Chmod(dir, 0750); err != nil {
+		log.Printf("State: WARNING - Could not chmod socket dir %s: %v", dir, err)
+	}
 	setDirGroupToVex(dir)
 	return nil
 }

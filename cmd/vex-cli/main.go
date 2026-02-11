@@ -320,8 +320,15 @@ func cmdOOM(score string) {
 func cmdPenance() {
 	// Penance is interactive (stdin) so we handle it locally
 	// but validate + report result to daemon.
-	if err := surveillance.Init(); err != nil {
-		log.Printf("Surveillance initialization warning: %v", err)
+	//
+	// NOTE: surveillance.Init() is only useful when running as root
+	// (it opens /dev/input/* devices).  When running as a non-root vex
+	// group member, skip it to avoid noisy "permission denied" warnings
+	// that obscure the penance interface.
+	if os.Geteuid() == 0 {
+		if err := surveillance.Init(); err != nil {
+			log.Printf("Surveillance initialization warning: %v", err)
+		}
 	}
 
 	m, err := penance.LoadManifest(penance.ManifestFile)
@@ -353,14 +360,40 @@ func cmdPenance() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	var sb strings.Builder
+	lineNum := 0
+	totalWords := 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		if !penance.ValidateLineInput(line, m.Active.Constraints) {
 			fmt.Println("[ERROR] Backspace detected! Line REJECTED. Retype the entire line.")
+			vexlog.LogEvent("PENANCE", "LINE_REJECTED", fmt.Sprintf("reason=backspace_violation line=%d", lineNum+1))
 			_ = penance.RecordFailure("backspace_violation")
 			continue
 		}
+		lineNum++
+		lineWords := len(strings.Fields(line))
+		totalWords += lineWords
 		sb.WriteString(line + "\n")
+
+		// Show the user that each line is registered
+		fmt.Printf("  [line %d] %d words (total: %d/%d)\n",
+			lineNum, lineWords, totalWords, m.Active.RequiredContent.MinWordCount)
+
+		vexlog.LogEvent("PENANCE", "LINE_ACCEPTED", fmt.Sprintf("line=%d words=%d total_words=%d", lineNum, lineWords, totalWords))
+
+		// Send each accepted line to the daemon so it is registered in the
+		// daemon log and tracked over the socket.
+		resp, err := client().Send(&ipc.Request{
+			Command: ipc.CmdPenanceInput,
+			Args:    map[string]string{"line": line, "num": strconv.Itoa(lineNum)},
+		})
+		if err != nil {
+			// Non-fatal: log locally but don't interrupt the session
+			vexlog.LogEvent("PENANCE", "IPC_WARN", fmt.Sprintf("could not reach daemon: %v", err))
+		} else if resp != nil && !resp.OK {
+			vexlog.LogEvent("PENANCE", "IPC_WARN", fmt.Sprintf("daemon rejected input: %s", resp.Error))
+		}
+
 		_ = penance.MarkInProgress()
 	}
 	if err := scanner.Err(); err != nil {

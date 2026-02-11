@@ -25,9 +25,10 @@ const (
 	CmdLinesStatus = "lines-status" // check progress
 	CmdLinesSubmit = "lines-submit" // submit one line of text
 	CmdResetScore  = "reset-score"  // reset failure score to zero
-	CmdAppAdd      = "app-add"      // add an app to the forbidden list
-	CmdAppRemove   = "app-rm"       // remove an app from the forbidden list
-	CmdAppList     = "app-list"     // list forbidden apps
+	CmdAppAdd        = "app-add"        // add an app to the forbidden list
+	CmdAppRemove     = "app-rm"         // remove an app from the forbidden list
+	CmdAppList       = "app-list"       // list forbidden apps
+	CmdPenanceInput  = "penance-input"  // log a penance input line to daemon
 )
 
 // Request is sent from the CLI to the daemon over the socket.

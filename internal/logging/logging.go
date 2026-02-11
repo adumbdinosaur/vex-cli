@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/user"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -34,6 +36,11 @@ func Init() error {
 			return
 		}
 		logFile = f
+
+		// Set log file group to 'vex' so non-root group members can
+		// append.  This only works when the daemon (root) creates the file;
+		// if the file already exists with the wrong ownership it is fixed.
+		setLogGroupToVex(LogFilePath)
 
 		// Attempt chattr +a enforcement to prevent Toy deletion
 		if err := enforceAppendOnly(LogFilePath); err != nil {
@@ -86,6 +93,27 @@ func LogEvent(module string, event string, details string) {
 func Close() {
 	if logFile != nil {
 		logFile.Close()
+	}
+}
+
+// setLogGroupToVex sets the group ownership of the log file to 'vex'
+// and ensures the file mode is 0664 (rw-rw-r--) so that non-root vex
+// group members can append to it.
+func setLogGroupToVex(path string) {
+	grp, err := user.LookupGroup("vex")
+	if err != nil {
+		return // group doesn't exist; only root can log
+	}
+	gid, err := strconv.Atoi(grp.Gid)
+	if err != nil {
+		return
+	}
+	// -1 for uid means keep owner unchanged
+	if err := os.Chown(path, -1, gid); err != nil {
+		log.Printf("Logging: WARNING - Could not chown log to vex group: %v", err)
+	}
+	if err := os.Chmod(path, 0664); err != nil {
+		log.Printf("Logging: WARNING - Could not chmod log to 0664: %v", err)
 	}
 }
 
