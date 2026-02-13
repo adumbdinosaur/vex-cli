@@ -1,6 +1,7 @@
 package surveillance
 
 import (
+	"os"
 	"log"
 	"strings"
 	"sync"
@@ -25,6 +26,18 @@ var (
 // Init initializes the surveillance subsystem
 func Init() error {
 	log.Println("Initializing Surveillance Subsystem...")
+
+	// Check for explicit device path override from environment
+	if devicePath := os.Getenv("VEX_DEVICE_PATH"); devicePath != "" {
+		log.Printf("Surveillance: Using explicit device path: %s", devicePath)
+		if err := listenToDevice(devicePath); err != nil {
+			log.Printf("Surveillance: Failed to attach to %s: %v", devicePath, err)
+		} else {
+			go metricReporter()
+			return nil
+		}
+		// Fall through to auto-detection if explicit path fails
+	}
 
 	// 1. Scan for Input Devices
 	// Uses wrapper evOps

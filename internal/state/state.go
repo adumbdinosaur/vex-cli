@@ -111,7 +111,7 @@ func Default() *SystemState {
 			PacketLossPct: 0,
 		},
 		Compute: ComputeState{
-			CPULimitPct:    100,
+			CPULimitPct:    80,
 			OOMScoreAdj:    0,
 			InputLatencyMs: 0,
 		},
@@ -170,9 +170,10 @@ func Save(s *SystemState) error {
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
-	if err := fsOps.WriteFile(StateFile, data, 0640); err != nil {
+	if err := fsOps.WriteFile(StateFile, data, 0644); err != nil {
 		return fmt.Errorf("failed to write state file: %w", err)
 	}
+	setFileGroupToVex(StateFile)
 
 	log.Printf("State: Persisted (profile=%s, cpu=%d%%, locked=%v, by=%s)",
 		s.Network.Profile, s.Compute.CPULimitPct, s.Compliance.Locked, s.ChangedBy)
@@ -201,6 +202,22 @@ func EnsureSocketDir() error {
 
 // setDirGroupToVex sets the group ownership of a directory to the 'vex' group.
 func setDirGroupToVex(path string) {
+	grp, err := user.LookupGroup("vex")
+	if err != nil {
+		log.Printf("State: WARNING - 'vex' group not found: %v", err)
+		return
+	}
+	gid, err := strconv.Atoi(grp.Gid)
+	if err != nil {
+		return
+	}
+	if err := os.Chown(path, -1, gid); err != nil {
+		log.Printf("State: WARNING - Could not set group on %s: %v", path, err)
+	}
+}
+
+// setFileGroupToVex sets the group ownership of a file to the 'vex' group.
+func setFileGroupToVex(path string) {
 	grp, err := user.LookupGroup("vex")
 	if err != nil {
 		log.Printf("State: WARNING - 'vex' group not found: %v", err)
